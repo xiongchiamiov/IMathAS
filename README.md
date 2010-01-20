@@ -5,7 +5,7 @@ Version: 1.8. Released November 9, 2009
 See [Change Log][1] for detailed change history. The
 most recent version of the code is available via SVN at [Google Code][2]
 
-   [1]: changelog.html
+   [1]: changelog.md
    [2]: http://code.google.com/p/imathas/
 
 ### What is IMathAS
