@@ -6,11 +6,11 @@
 	//load in filters as needed
 	$filterdir = rtrim(dirname(__FILE__), '/\\');
 	//include("$filterdir/simplelti/simplelti.php");
-	if ($sessiondata['mathdisp']==2) { //use image fallback for math
+	if (isset($sessiondata['mathdisp']) && $sessiondata['mathdisp']==2) { //use image fallback for math
 		include("$filterdir/math/ASCIIMath2TeX.php");
 		$AMT = new AMtoTeX;
 	} 
-	if ($sessiondata['graphdisp']==2 || isset($loadgraphfilter)) { //use image fallback for graphs
+	if (isset($sessiondata['graphdisp']) && $sessiondata['graphdisp']==2 || isset($loadgraphfilter)) { //use image fallback for graphs
 		include("$filterdir/graph/asciisvgimg.php");
 		$AS = new AStoIMG;
 	} 
@@ -90,13 +90,18 @@
 				$str = preg_replace_callback('/<\s*embed[^>]*?script=(.)(.+?)\1.*?>/s','svgfilterscriptcallback',$str);
 			}
 		}
-		$search = '/\[LTI:\s*url=(.*),\s*key=(.*),\s*secret=([^\]]*)\]/';
+		$search = '/\[LTI:\s*url=(.+),\s*key=(.+),\s*secret=([^\],]+)([^\]]*)\]/';
 		
 		if (preg_match($search, $str, $res)){
 			$url = $res[1];
 			$key = $res[2];
 			$secret = $res[3];
-			$sessiondata['lti-secrets'][$key] = $secret;
+			if (isset($res[4]) && $res[4]!='') {
+				$opts = $res[4];
+			} else {
+				$opts = '';
+			}
+			$sessiondata['lti-secrets'][$key] = array($secret,$opts);
 			writesessiondata();	
 			$replamnt = getltiiframe($url,$key,time());
 			$str = preg_replace('/\[LTI:[^\]]*\]/', $replamnt, $str);
@@ -148,7 +153,7 @@
 	}
 	
 	function getltiiframe($url,$key,$linkback) {
-		global $cid;
+		global $cid,$imasroot;
 		if (!isset($cid) && isset($_GET['cid'])) {
 			$cid = $_GET['cid'];
 		}

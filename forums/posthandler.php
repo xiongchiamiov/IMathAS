@@ -81,7 +81,7 @@ if (isset($_GET['modify'])) { //adding or modifying post
 			$query = "SELECT * from imas_forum_posts WHERE id='{$_GET['modify']}'";
 			$result = mysql_query($query) or die("Query failed : $query " . mysql_error());
 			$line = mysql_fetch_array($result, MYSQL_ASSOC);
-			echo "<h3>Modify Post</h3>\n";
+			echo '<div id="headerposthandler" class="pagetitle"><h2>Modify Post</h2></div>';
 		} else {
 			echo "Post Reply</div>\n";
 			$query = "SELECT subject,points FROM imas_forum_posts WHERE id='{$_GET['replyto']}'";
@@ -96,7 +96,7 @@ if (isset($_GET['modify'])) { //adding or modifying post
 				$result = mysql_query($query) or die("Query failed : $query " . mysql_error());
 				$haspoints = (mysql_result($result,0,0)>0);
 			}
-			echo "<h3>Post Reply</h3>\n";
+			echo '<div id="headerposthandler" class="pagetitle"><h2>Post Reply</h2></div>';
 		}
 		echo "<form method=post action=\"$returnurl&modify={$_GET['modify']}&replyto={$_GET['replyto']}\">\n";
 		echo "<span class=form><label for=\"subject\">Subject:</label></span>";
@@ -154,31 +154,39 @@ if (isset($_GET['modify'])) { //adding or modifying post
 		require("../footer.php");
 		exit;
 	}
-} else if (isset($_GET['remove']) && $isteacher) { //removing post
+} else if (isset($_GET['remove']) && $allowdel) {// $isteacher) { //removing post
 	if (isset($_GET['confirm'])) {
-		$query = "SELECT parent FROM imas_forum_posts WHERE id='{$_GET['remove']}'";
-		$result = mysql_query($query) or die("Query failed : $query " . mysql_error());
-		$parent = mysql_result($result,0,0);
-		if ($parent==0) {
-			$query = "DELETE FROM imas_forum_posts WHERE threadid='{$_GET['remove']}'";
-			mysql_query($query) or die("Query failed : $query " . mysql_error());
-			
-			$query = "DELETE FROM imas_forum_threads WHERE id='{$_GET['remove']}'";
-			mysql_query($query) or die("Query failed : $query " . mysql_error());
-			
-			$query = "DELETE FROM imas_forum_views WHERE threadid='{$_GET['remove']}'";
-			mysql_query($query) or die("Query failed : $query " . mysql_error());
-			$lastpost = true;
-		} else {
-			$query = "DELETE FROM imas_forum_posts WHERE id='{$_GET['remove']}'";
-			mysql_query($query) or die("Query failed : $query " . mysql_error());
-			
-			$query = "UPDATE imas_forum_posts SET parent='$parent' WHERE parent='{$_GET['remove']}'";
-			mysql_query($query) or die("Query failed : $query " . mysql_error());
-			$lastpost = false;	
+		$go = true;
+		if (!$isteacher) {
+			$query = "SELECT id FROM imas_forum_posts WHERE parent='{$_GET['remove']}'";
+			$result = mysql_query($query) or die("Query failed : $query " . mysql_error());
+			if (mysql_num_rows($result)>0) {
+				$go = false;
+			}
+		} 
+		if ($go) {
+			$query = "SELECT parent FROM imas_forum_posts WHERE id='{$_GET['remove']}'";
+			$result = mysql_query($query) or die("Query failed : $query " . mysql_error());
+			$parent = mysql_result($result,0,0);
+			if ($parent==0) {
+				$query = "DELETE FROM imas_forum_posts WHERE threadid='{$_GET['remove']}'";
+				mysql_query($query) or die("Query failed : $query " . mysql_error());
+				
+				$query = "DELETE FROM imas_forum_threads WHERE id='{$_GET['remove']}'";
+				mysql_query($query) or die("Query failed : $query " . mysql_error());
+				
+				$query = "DELETE FROM imas_forum_views WHERE threadid='{$_GET['remove']}'";
+				mysql_query($query) or die("Query failed : $query " . mysql_error());
+				$lastpost = true;
+			} else {
+				$query = "DELETE FROM imas_forum_posts WHERE id='{$_GET['remove']}'";
+				mysql_query($query) or die("Query failed : $query " . mysql_error());
+				
+				$query = "UPDATE imas_forum_posts SET parent='$parent' WHERE parent='{$_GET['remove']}'";
+				mysql_query($query) or die("Query failed : $query " . mysql_error());
+				$lastpost = false;	
+			}
 		}
-		
-		
 		if ($caller == "posts" && $lastpost) {
 			header("Location: http://" . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['PHP_SELF']), '/\\') . "/thread.php?page=$page&cid=$cid&forum=$forumid");
 		} else {
@@ -191,6 +199,15 @@ if (isset($_GET['modify'])) { //adding or modifying post
 		$result = mysql_query($query) or die("Query failed : $query " . mysql_error());
 		$parent = mysql_result($result,0,0);
 		require("../header.php");
+		if (!$isteacher) {
+			$query = "SELECT id FROM imas_forum_posts WHERE parent='{$_GET['remove']}'";
+			$result = mysql_query($query) or die("Query failed : $query " . mysql_error());
+			if (mysql_num_rows($result)>0) {
+				echo "Someone has replied to this post, so you cannot remove it.  <a href=\"$returnurl\">Back</a>";
+				require("../footer.php");
+				exit;
+			}
+		} 
 		echo "<div class=breadcrumb>$breadcrumbbase <a href=\"../course/course.php?cid=$cid\">$coursename</a> ";
 		echo "&gt; <a href=\"thread.php?page=$page&cid=$cid&forum=$forumid\">Forum Topics</a> &gt; ";
 		echo "<a href=\"$returnurl\">$returnname</a> &gt; Remove Post</div>";

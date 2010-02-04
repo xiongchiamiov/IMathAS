@@ -3,6 +3,13 @@
 	//(c) 20006 David Lippman
 	if ($_GET['action']=="newuser") {
 		require_once("config.php");
+		if (isset($studentTOS) && !isset($_POST['agree'])) {
+			echo "<html><body>\n";
+			echo "<p>You must agree to the Terms and Conditions to set up an account</p>";
+			echo "<p><a href=\"forms.php?action=newuser\">Try Again</a></p>\n";
+			echo "</html></body>\n";
+			exit;
+		}
 		$_POST['SID'] = trim($_POST['SID']);
 		if ($loginformat!='' && !preg_match($loginformat,$_POST['SID'])) {
 			echo "<html><body>\n";
@@ -44,6 +51,11 @@
 		} else {
 			$msgnot = 0;
 		}
+		if (isset($CFG['GEN']['homelayout'])) {
+			$homelayout = $CFG['GEN']['homelayout'];
+		} else {
+			$homelayout = '|0,2,3||0,1';
+		}
 		if (!isset($_GET['confirmed'])) {
 			$query = "SELECT SID FROM imas_users WHERE email='{$_POST['email']}'";
 			$result = mysql_query($query) or die("Query failed : " . mysql_error());
@@ -66,8 +78,8 @@
 				exit;
 			}
 		}
-		$query = "INSERT INTO imas_users (SID, password, rights, FirstName, LastName, email, msgnotify) ";
-		$query .= "VALUES ('{$_POST['SID']}','$md5pw',$initialrights,'{$_POST['firstname']}','{$_POST['lastname']}','{$_POST['email']}',$msgnot);";
+		$query = "INSERT INTO imas_users (SID, password, rights, FirstName, LastName, email, msgnotify, homelayout) ";
+		$query .= "VALUES ('{$_POST['SID']}','$md5pw',$initialrights,'{$_POST['firstname']}','{$_POST['lastname']}','{$_POST['email']}',$msgnot,'$homelayout');";
 		mysql_query($query) or die("Query failed : " . mysql_error());
 		if ($emailconfirmation) {
 			$id = mysql_insert_id();
@@ -157,10 +169,15 @@
 			$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
 			$headers .= "From: $sendfrom\r\n";
 			$message  = "<h4>This is an automated message from $installname.  Do not respond to this email</h4>\r\n";
-			$message .= "<p>Your email was entered in the Username Lookup page.  If you did not do this, you may ignore and delete this message.  ";
+			$message .= "<p>Your email was entered in the Username Lookup page on $installname.  If you did not do this, you may ignore and delete this message.  ";
 			$message .= "All usernames using this email address are listed below</p><p>";
 			while ($row = mysql_fetch_row($result)) {
-				$message .= "Username: <b>{$row[0]}</b>.  Last logged in:  ".date("n/j/y g:ia",$row[1])."<br/>";
+				if ($row[1]==0) {
+					$lastlogin = "Never";
+				} else {
+					$lastlogin = date("n/j/y g:ia",$row[1]);
+				}
+				$message .= "Username: <b>{$row[0]}</b>.  Last logged in: $lastlogin<br/>";
 			}
 			$message .= "</p><p>If you forgot your password, use the Lost Password link at the login page.</p>";
 			mail($_POST['email'],"$installname Username Request",$message,$headers);
@@ -202,7 +219,7 @@
 		}
 		if ($_POST['cid']=="" || !is_numeric($_POST['cid'])) {
 			echo "<html><body>\n";
-			echo "Please include Course ID.  <a href=\"index.php\">Try Again</a>\n";
+			echo "Please include Course ID.  <a href=\"forms.php?action=enroll\">Try Again</a>\n";
 			echo "</html></body>\n";
 			exit;
 		}
@@ -211,7 +228,7 @@
 		$line = mysql_fetch_array($result, MYSQL_ASSOC);
 		if ($line == null) {
 			echo "<html><body>\n";
-			echo "Course not found.  <a href=\"index.php\">Try Again</a>\n";
+			echo "Course not found.  <a href=\"forms.php?action=enroll\">Try Again</a>\n";
 			echo "</html></body>\n";
 			exit;
 		} else if (($line['allowunenroll']&2)==2) {
@@ -221,12 +238,12 @@
 			exit;
 		} else if ($_POST['ekey']=="" && $line['enrollkey'] != '') {
 			echo "<html><body>\n";
-			echo "Please include Enrollment Key.  <a href=\"index.php\">Try Again</a>\n";
+			echo "Please include Enrollment Key.  <a href=\"forms.php?action=enroll\">Try Again</a>\n";
 			echo "</html></body>\n";
 			exit;
 		} else if ($line['enrollkey'] != $_POST['ekey']) {
 			echo "<html><body>\n";
-			echo "Incorrect Enrollment Key.  <a href=\"index.php\">Try Again</a>\n";
+			echo "Incorrect Enrollment Key.  <a href=\"forms.php?action=enroll\">Try Again</a>\n";
 			echo "</html></body>\n";
 			exit;
 		} else {
@@ -312,7 +329,34 @@
 		} else {
 			$deflib = $_POST['libs'];
 		}
-		$query = "UPDATE imas_users SET FirstName='{$_POST['firstname']}',LastName='{$_POST['lastname']}',email='{$_POST['email']}',msgnotify=$msgnot,qrightsdef=$qrightsdef,deflib='$deflib',usedeflib='$usedeflib' ";
+		$homelayout[0] = array();
+		$homelayout[1] = array(0,1,2);
+		$homelayout[2] = array();
+		if (isset($_POST['homelayout10'])) {
+			$homelayout[2][] = 10;
+		}
+		if (isset($_POST['homelayout11'])) {
+			$homelayout[2][] = 11;
+		}
+		$homelayout[3] = array();
+		if (isset($_POST['homelayout3-0'])) {
+			$homelayout[3][] = 0;
+		}
+		if (isset($_POST['homelayout3-1'])) {
+			$homelayout[3][] = 1;
+		}
+		foreach ($homelayout as $k=>$v) {
+			$homelayout[$k] = implode(',',$v);
+		}
+		if (isset($CFG['GEN']['fixedhomelayout']) && $CFG['GEN']['homelayout']) {
+			$deflayout = explode('|',$CFG['GEN']['homelayout']);
+			foreach ($CFG['GEN']['fixedhomelayout'] as $k) {
+				$homelayout[$k] = $deflayout[$k];
+			}
+		}
+				
+		$layoutstr = implode('|',$homelayout);
+		$query = "UPDATE imas_users SET FirstName='{$_POST['firstname']}',LastName='{$_POST['lastname']}',email='{$_POST['email']}',msgnotify=$msgnot,qrightsdef=$qrightsdef,deflib='$deflib',usedeflib='$usedeflib',homelayout='$layoutstr' ";
 		$query .= "WHERE id='$userid'";
 		mysql_query($query) or die("Query failed : " . mysql_error());
 		if (is_uploaded_file($_FILES['stupic']['tmp_name'])) {

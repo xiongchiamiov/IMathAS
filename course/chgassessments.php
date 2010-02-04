@@ -139,6 +139,9 @@ if (!(isset($teacherid))) {
 			if (isset($_POST['chghints'])) {
 				$sets[] = "showhints='$showhints'";
 			}
+			if (isset($_POST['chgshowtips'])) {
+				$sets[] = "showtips='{$_POST['showtips']}'";
+			}
 			if (isset($_POST['chgnoprint'])) {
 				$sets[] = "noprint='$noprint'";
 			}
@@ -319,9 +322,9 @@ function copyfromtoggle(frm,mark) {
 </script>
 
 	<div class=breadcrumb><?php echo $curBreadcrumb ?></div>
-	<h2>Mass Change Assessment Settings 
+	<div id="headerchgassessments" class="pagetitle"><h2>Mass Change Assessment Settings 
 		<img src="<?php echo $imasroot ?>/img/help.gif" alt="Help" onClick="window.open('<?php echo $imasroot ?>/help.php?section=assessments','help','top=0,width=400,height=500,scrollbars=1,left='+(screen.width-420))"/>
-	</h2>
+	</h2></div>
 
 	<p>This form will allow you to change the assessment settings for several or all assessments at once.
 	 <b>Beware</b> that changing default points or penalty after an assessment has been 
@@ -505,6 +508,14 @@ function copyfromtoggle(frm,mark) {
 				<td><input type="checkbox" name="chghints"/></td>
 				<td class="r">Show hints when available? </td>
 				<td><input type="checkbox" name="showhints" checked="checked"></td>
+			</tr>
+			<tr class="coptr">
+				<td><input type="checkbox" name="chgshowtips"/></td>
+				<td class="r">Show answer entry tips?</td>
+				<td><select name="showtips">
+					<option value="0" >No</option>
+					<option value="1" selected="selected">Yes</option>
+				     </select></td>
 			</tr>
 			<tr class="coptr">
 				<td><input type="checkbox" name="chgallowlate"/></td>

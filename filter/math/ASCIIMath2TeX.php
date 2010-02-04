@@ -182,9 +182,9 @@ array( 'input'=>'tan', 'unary'=>TRUE, 'func'=>TRUE),
 array( 'input'=>'arcsin', 'unary'=>TRUE, 'func'=>TRUE), 
 array( 'input'=>'arccos', 'unary'=>TRUE, 'func'=>TRUE), 
 array( 'input'=>'arctan', 'unary'=>TRUE, 'func'=>TRUE), 
-array( 'input'=>'sinh', 'unary'=>TRUE, 'func'=>TRUE),
-array( 'input'=>'cosh', 'unary'=>TRUE, 'func'=>TRUE),
-array( 'input'=>'tanh', 'unary'=>TRUE, 'func'=>TRUE),
+array( 'input'=>'sinh', 'tex'=>'text{sinh}', 'unary'=>TRUE, 'func'=>TRUE),
+array( 'input'=>'cosh', 'tex'=>'text{cosh}', 'unary'=>TRUE, 'func'=>TRUE),
+array( 'input'=>'tanh', 'tex'=>'text{tanh}',  'unary'=>TRUE, 'func'=>TRUE),
 array( 'input'=>'cot', 'unary'=>TRUE, 'func'=>TRUE),
 array( 'input'=>'sec', 'unary'=>TRUE, 'func'=>TRUE),
 array( 'input'=>'csc', 'unary'=>TRUE, 'func'=>TRUE),
@@ -316,7 +316,7 @@ function AMnewcommand($oldstr,$newstr) {
 }
 
 function AMremoveCharsAndBlanks($str,$n) {
-    	if (strlen($str)>1 && $str{$n}=='\\' && $str{$n+1}!= '\\' && $str{$n+1}!=' ') {
+    	if (strlen($str)>$n+1 && $str{$n}=='\\' && $str{$n+1}!= '\\' && $str{$n+1}!=' ') {
 		$st = substr($str, $n+1);
 	} else {
 		$st = substr($str,$n);

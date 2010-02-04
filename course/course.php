@@ -97,10 +97,12 @@ if (!isset($teacherid) && !isset($tutorid) && !isset($studentid) && !isset($gues
 	$items = unserialize($line['itemorder']);
 	$msgset = $line['msgset']%5;
 	$chatset = $line['chatset'];
-	$useleftbar = ($line['cploc']==1);
+	$useleftbar = (($line['cploc']&1)==1);
+	$useleftstubar = (($line['cploc']&2)==2);
 	$topbar = explode('|',$line['topbar']);
 	$topbar[0] = explode(',',$topbar[0]);
 	$topbar[1] = explode(',',$topbar[1]);
+	if (!isset($topbar[2])) {$topbar[2] = 0;}
 	if ($topbar[0][0] == null) {unset($topbar[0][0]);}
 	if ($topbar[1][0] == null) {unset($topbar[1][0]);}
   
@@ -132,7 +134,7 @@ if (!isset($teacherid) && !isset($tutorid) && !isset($studentid) && !isset($gues
 		$_GET['folder'] = '0';  
 		$sessiondata['folder'.$cid] = '0';
 		writesessiondata();
-	} else if ((isset($_GET['folder']) && $_GET['folder']!='') && $sessiondata['folder'.$cid]!=$_GET['folder']) {
+	} else if ((isset($_GET['folder']) && $_GET['folder']!='') && (!isset($sessiondata['folder'.$cid]) || $sessiondata['folder'.$cid]!=$_GET['folder'])) {
 		$sessiondata['folder'.$cid] = $_GET['folder'];
 		writesessiondata();
 	} else if ((!isset($_GET['folder']) || $_GET['folder']=='') && isset($sessiondata['folder'.$cid])) {
@@ -190,10 +192,15 @@ if (!isset($teacherid) && !isset($tutorid) && !isset($studentid) && !isset($gues
 				unset($blocktree);
 				break;
 			}
+			if (isset($items[$blocktree[$i]-1]['grouplimit']) && count($items[$blocktree[$i]-1]['grouplimit'])>0 && !isset($teacherid) && !isset($tutorid)) {
+				if (!in_array('s-'.$studentinfo['section'],$items[$blocktree[$i]-1]['grouplimit'])) {
+					echo 'Not authorized';
+					exit;
+				}
+			}  
 			$items = $items[$blocktree[$i]-1]['items']; //-1 to adjust for 1-indexing
 		}
 	}
-	
 	//DEFAULT DISPLAY PROCESSING
 	$jsAddress1 = "http://" . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['PHP_SELF']), '/\\') . "/course.php?cid={$_GET['cid']}";
 	$jsAddress2 = "http://" . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['PHP_SELF']), '/\\');
@@ -332,7 +339,20 @@ if ($overwriteBody==1) {
 		var plblist = '<?php echo $plblist ?>';
 		var cid = '<?php echo $cid ?>';
 	</script> 
-
+	
+<?php
+	//check for theme course layout
+	$themeshort = substr($coursetheme,0,strpos($coursetheme,'.'));
+	if (file_exists("course-$themeshort.php")) {
+		require("course-$themeshort.php");
+		if ($firstload) {
+			echo "<script>document.cookie = 'openblocks-$cid=' + oblist;\n";
+			echo "document.cookie = 'loadedblocks-$cid=0';</script>\n";
+		}
+		require("../footer.php");
+		exit;
+	}
+?>
 	<div class=breadcrumb>
 		<span class="padright">
 		<?php if (isset($guestid)) {
@@ -348,7 +368,12 @@ if ($overwriteBody==1) {
 	if ($useleftbar && isset($teacherid)) {
 ?>	
 	<div id="leftcontent">
-		<p><?php echo generateadditem($_GET['folder'],'LB') ?></p>
+	<?php
+		if (isset($CFG['CPS']['additemtype']) && $CFG['CPS']['additemtype'][0]=='links') {
+		} else {
+			echo '<p>'.generateadditem($_GET['folder'],'LB').'</p>';
+		}
+	?>
 		<p><b>Show:</b><br/>
 			<a href="<?php echo $imasroot ?>/msgs/msglist.php?cid=<?php echo $cid ?>&folder=<?php echo $_GET['folder'] ?>">
 			Messages</a> <?php echo $newmsgs ?> <br/>
@@ -400,7 +425,36 @@ if ($overwriteBody==1) {
 	</div>
 	<div id="centercontent">
 <?php	
-   }
+	} else if ($useleftstubar && !isset($teacherid)) {
+?>
+		<div id="leftcontent">
+			<p>
+			<a href="<?php echo $imasroot ?>/msgs/msglist.php?cid=<?php echo $cid ?>&folder=<?php echo $_GET['folder'] ?>">
+			Messages</a> <?php echo $newmsgs ?> <br/>
+			<a href="<?php echo $imasroot ?>/forums/forums.php?cid=<?php echo $cid ?>&folder=<?php echo $_GET['folder'] ?>">
+			Forums</a> <?php echo $newpostscnt ?><br/>
+			<a href="showcalendar.php?cid=<?php echo $cid ?>">Calendar</a>
+	<?php if (isset($mathchaturl) && $chatset==1) {
+			echo "<br/><a href=\"$mathchaturl?uname=".urlencode($userfullname)."&amp;room=$cid&amp;roomname=".urlencode($coursename)."\"  target=\"chat\">Chat</a>  ($activechatters)";
+		}
+	?>
+			</p>
+			<p>
+			<a href="gradebook.php?cid=<?php echo $cid ?>">Gradebook</a> <?php if (($coursenewflag&1)==1) {echo '<span class="red">New</span>';}?>
+			</p>
+			<p>
+			<a href="../actions.php?action=logout">Log Out</a><br/>   
+			<a href="<?php echo $imasroot ?>/help.php?section=usingimas">Help Using <?php echo $installname;?></a>
+			</p>
+			<?php		  
+			if ($myrights > 5 && $allowunenroll==1) {
+				echo "<p><a href=\"../forms.php?action=unenroll&cid=$cid\">Unenroll From Course</a></p>\n";
+			}
+			?>
+		</div>
+		<div id="centercontent">
+<?php
+	}
    
    if ($previewshift>-1) {
 ?>
@@ -415,7 +469,7 @@ if ($overwriteBody==1) {
 <?php	
    }
    makeTopMenu();	
-   echo "<h2>$curname</h2>\n";
+   echo "<div id=\"headercourse\" class=\"pagetitle\"><h2>$curname</h2></div>\n";
    
    if (count($items)>0) {
 	   
@@ -424,7 +478,7 @@ if ($overwriteBody==1) {
 		   echo '<style type="text/css">.drag {color:red; background-color:#fcc;} .icon {cursor: pointer;}</style>';
 		   echo "<script>var AHAHsaveurl = '$imasroot/course/savequickreorder.php?cid=$cid';</script>";
 		   echo "<script src=\"$imasroot/javascript/mootools.js\"></script>";
-		   echo "<script src=\"$imasroot/javascript/nested1.js\"></script>";
+		   echo "<script src=\"$imasroot/javascript/nested1.js?v=0122102\"></script>";
 		   echo '<ul id=qviewtree class=qview>';
 		   quickview($items,0);
 		   echo '</ul>';
@@ -443,7 +497,7 @@ if ($overwriteBody==1) {
 	   echo $backlink;
    }
    
-   if ($useleftbar && isset($teacherid)) {
+   if (($useleftbar && isset($teacherid)) || ($useleftstubar && !isset($teacherid))) {
 	   echo "</div>";
    } else {
 	  
@@ -578,7 +632,7 @@ function makeTopMenu() {
 	} else {
 		$gbnewflag = '';
 	}
-	if (isset($teacherid) && count($topbar[1])>0) {
+	if (isset($teacherid) && count($topbar[1])>0 && $topbar[2]==0) {
 		echo '<div class=breadcrumb>';
 		if (in_array(0,$topbar[1]) && $msgset<4) { //messages
 			echo "<a href=\"$imasroot/msgs/msglist.php?cid=$cid\">Messages</a>$newmsgs &nbsp; ";
@@ -606,24 +660,26 @@ function makeTopMenu() {
 			echo "<a href=\"../actions.php?action=logout\">Log Out</a>";
 		}
 		echo '<div class=clear></div></div>';
-	} else if (!isset($teacherid) && (count($topbar[0])>0 || $previewshift>-1)) {
+	} else if (!isset($teacherid) && ((count($topbar[0])>0 && $topbar[2]==0) || $previewshift>-1)) {
 		echo '<div class=breadcrumb>';
-		if (in_array(0,$topbar[0]) && $msgset<4) { //messages
-			echo "<a href=\"$imasroot/msgs/msglist.php?cid=$cid\">Messages</a>$newmsgs &nbsp; ";
+		if ($topbar[2]==0) {
+			if (in_array(0,$topbar[0]) && $msgset<4) { //messages
+				echo "<a href=\"$imasroot/msgs/msglist.php?cid=$cid\">Messages</a>$newmsgs &nbsp; ";
+			}
+			if (in_array(3,$topbar[0])) { //forums
+				echo "<a href=\"$imasroot/forums/forums.php?cid=$cid\">Forums</a>$newpostscnt &nbsp; ";
+			}
+			if (in_array(1,$topbar[0])) { //Gradebook
+				echo "<a href=\"gradebook.php?cid=$cid\">Show Gradebook</a>$gbnewflag &nbsp; ";
+			}
+			if (in_array(2,$topbar[0])) { //Calendar
+				echo "<a href=\"showcalendar.php?cid=$cid\">Calendar</a> &nbsp; \n";
+			}
+			if (in_array(9,$topbar[0])) { //Log out
+				echo "<a href=\"../actions.php?action=logout\">Log Out</a>";
+			}
+			if ($previewshift>-1 && count($topbar[0])>0) { echo '<br />';}
 		}
-		if (in_array(3,$topbar[0])) { //forums
-			echo "<a href=\"$imasroot/forums/forums.php?cid=$cid\">Forums</a>$newpostscnt &nbsp; ";
-		}
-		if (in_array(1,$topbar[0])) { //Gradebook
-			echo "<a href=\"gradebook.php?cid=$cid\">Show Gradebook</a>$gbnewflag &nbsp; ";
-		}
-		if (in_array(2,$topbar[0])) { //Calendar
-			echo "<a href=\"showcalendar.php?cid=$cid\">Calendar</a> &nbsp; \n";
-		}
-		if (in_array(9,$topbar[0])) { //Log out
-			echo "<a href=\"../actions.php?action=logout\">Log Out</a>";
-		}
-		if ($previewshift>-1 && count($topbar[0])>0) { echo '<br />';}
 		if ($previewshift>-1) {
 			echo 'Showing student view. Show view: <select id="pshift" onchange="changeshift()">';
 			echo '<option value="0" ';

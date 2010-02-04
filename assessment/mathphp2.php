@@ -92,7 +92,11 @@ function mathphpinterpretline($str,$vars,$ignorestrings) {
 			$bits[] = $lastsym;
 			$bits[] = ')';
 			$sym = '';
-		}  else {
+		} else if ($lasttype==2 && $type==4 && substr($lastsym,0,5)=='root(') {
+			$bits[] = substr($lastsym,0,-1).',';
+			$sym = substr($sym,1);
+			$lasttype = 0;
+		} else {
 			//add last symbol to stack
 			if ($lasttype!=7 && $lasttype!=-1) {
 				$bits[] = $lastsym;
@@ -182,10 +186,12 @@ function mathphptokenize($str,$vars,$ignorestrings) {
 			$maxvarlen = $l;
 		}
 	}
+	$connecttolast = 0;
 	$i=0;
 	$cnt = 0;
 	$len = strlen($str);
 	$syms = array();
+	$lastsym = array();
 	while ($i<$len) {
 		$cnt++;
 		if ($cnt>100) {
@@ -323,7 +329,7 @@ function mathphptokenize($str,$vars,$ignorestrings) {
 			$intype = 3; //number
 			$cont = true;
 			//handle . 3 which needs to act as concat
-			if ($lastsym[0]=='.') {
+			if (isset($lastsym[0]) && $lastsym[0]=='.') {
 				$syms[count($syms)-1][0] .= ' ';
 			}
 			do {
@@ -342,7 +348,7 @@ function mathphptokenize($str,$vars,$ignorestrings) {
 						$i++;
 						if ($i==$len) {break;}
 						$c= $str{$i};
-					} else if ($d=='-' && ($str{$i+2}>='0' && $str{$i+2}<='9')) {
+					} else if (($d=='-'||$d=='+') && ($str{$i+2}>='0' && $str{$i+2}<='9')) {
 						$out .= $c.$d;
 						$i+= 2;
 						if ($i>=$len) {break;}
@@ -443,17 +449,23 @@ function mathphptokenize($str,$vars,$ignorestrings) {
 			//end of line
 			$intype = 7;
 			$i++;
-			$c = $str{$i};
+			if ($i<$len) {
+				$c = $str{$i};
+			}
 		} else if ($c==';') {
 			//end of line
 			$intype = 7;
 			$i++;
-			$c = $str{$i};
+			if ($i<$len) {
+				$c = $str{$i};
+			}
 		} else {
 			//no type - just append string.  Could be operators
 			$out .= $c;
 			$i++;
-			$c = $str{$i};
+			if ($i<$len) {
+				$c = $str{$i};
+			}
 		}
 		while ($c==' ') { //eat up extra whitespace
 			$i++;
@@ -507,6 +519,16 @@ function safepow($base,$power) {
 		$result = -($result);
 	}
 	return $result;
+}
+
+function root($n,$x) {
+	if ($n%2==0 && $x<0) { //if even root and negative base
+		return sqrt(-1);
+	} else if ($x<0) { //odd root of negative base - negative result
+		return -1*exp(1/$n*log(abs($x)));
+	} else { //root of positive base
+		return exp(1/$n*log(abs($x)));
+	}
 }
 
 function factorial($x) {

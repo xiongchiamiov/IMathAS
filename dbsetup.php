@@ -126,6 +126,7 @@ $sql = 'CREATE TABLE `imas_users` ('
 	. ' `qrightsdef` TINYINT(1) UNSIGNED NOT NULL DEFAULT \'0\','
 	. ' `deflib` INT(10) UNSIGNED NOT NULL DEFAULT \'0\','
 	. ' `usedeflib` TINYINT(1) UNSIGNED NOT NULL DEFAULT \'0\','
+	. ' `homelayout` VARCHAR(32)  NOT NULL DEFAULT \'|0,2,3||0,1\','
 	. ' `remoteaccess` VARCHAR(10) NOT NULL, '
 	. ' INDEX (`lastaccess`), INDEX (`rights`), '
         . ' UNIQUE (`SID`)'
@@ -172,7 +173,7 @@ $sql = 'CREATE TABLE `imas_tutors` ('
 	. '`userid` INT(10) UNSIGNED NOT NULL, '
 	. '`courseid` INT(10) UNSIGNED NOT NULL, '
 	. '`section` VARCHAR(40) NOT NULL, '
-	. 'INDEX (`userid`, `courseid`) '
+	. 'INDEX (`userid`), INDEX(`courseid`) '
 	. ' ) TYPE = innodb '
 	. 'COMMENT = \'course tutors\'';
 mysql_query($sql) or die("Query failed : $sql " . mysql_error());
@@ -229,7 +230,9 @@ $sql = 'CREATE TABLE `imas_assessments` ('
 	. ' `minscore` SMALLINT(4) UNSIGNED NOT NULL DEFAULT \'0\', '
 	. ' `showcat` TINYINT(1) UNSIGNED NOT NULL DEFAULT \'0\', '
 	. ' `showhints` TINYINT(1) UNSIGNED NOT NULL DEFAULT \'1\', '
+	. ' `showtips` TINYINT(1) UNSIGNED NOT NULL DEFAULT \'1\', '
 	. ' `isgroup` TINYINT(1) UNSIGNED NOT NULL DEFAULT \'0\','
+	. ' `groupsetid` INT(10) UNSIGNED NOT NULL DEFAULT \'0\','
 	. ' `reqscoreaid` INT(10) UNSIGNED NOT NULL DEFAULT \'0\','
 	. ' `reqscore` SMALLINT(4) UNSIGNED NOT NULL DEFAULT \'0\','
 	. ' `noprint` TINYINT(1) UNSIGNED NOT NULL DEFAULT \'0\','
@@ -430,6 +433,7 @@ $sql = 'CREATE TABLE `imas_libraries` ('
         . ' `name` VARCHAR(254) NOT NULL, '
         . ' `ownerid` INT(10) UNSIGNED NOT NULL DEFAULT \'0\', '
         . ' `userights` TINYINT(1) UNSIGNED NOT NULL DEFAULT \'8\', '
+	. ' `sortorder` TINYINT(1) UNSIGNED NOT NULL DEFAULT \'0\', '
 	. ' `parent` INT(10) UNSIGNED NOT NULL DEFAULT \'0\', '
 	. ' `groupid` INT(10) UNSIGNED NOT NULL DEFAULT \'0\','
         . ' INDEX (`ownerid`), INDEX(`userights`)'
@@ -464,6 +468,7 @@ $sql = 'CREATE TABLE `imas_forums` ('
 	. ' `replyby` INT(10) UNSIGNED NOT NULL DEFAULT \'2000000000\', '
 	. ' `postby` INT(10) UNSIGNED NOT NULL DEFAULT \'2000000000\', '
 	. ' `grpaid` INT(10) UNSIGNED NOT NULL DEFAULT \'0\', '
+	. ' `groupsetid` INT(10) UNSIGNED NOT NULL DEFAULT \'0\', '
 	. ' `points` SMALLINT(5) UNSIGNED NOT NULL DEFAULT \'0\', '
 	. ' `cntingb` TINYINT(1) UNSIGNED NOT NULL DEFAULT \'1\', '
 	. ' `gbcategory` INT(10) UNSIGNED NOT NULL DEFAULT \'0\', '
@@ -479,10 +484,11 @@ echo 'imas_forums created<br/>';
 $sql = 'CREATE TABLE `imas_forum_threads` ('
 	. '`id` INT(10) UNSIGNED NOT NULL, '
 	. '`forumid` INT(10) UNSIGNED NOT NULL, '
+	. '`stugroupid` INT(10) UNSIGNED NOT NULL DEFAULT \'0\', '
 	. '`lastposttime` INT(10) UNSIGNED NOT NULL, '
 	. '`lastpostuser` INT(10) UNSIGNED NOT NULL, '
 	. '`views` INT(10) UNSIGNED NOT NULL, '
-	. ' PRIMARY KEY (`id`), INDEX (`forumid`), INDEX(`lastposttime`) ) '
+	. ' PRIMARY KEY (`id`), INDEX (`forumid`), INDEX(`lastposttime`), INDEX(`stugroupid`) ) '
 	. ' TYPE = InnoDB '
 	. ' COMMENT = \'Forum threads\'';	
 mysql_query($sql) or die("Query failed : $sql " . mysql_error());	
@@ -558,7 +564,8 @@ $sql = 'CREATE TABLE `imas_diag_onetime` ('
         . ' `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, '
         . ' `diag` INT(10) UNSIGNED NOT NULL, '
         . ' `time` INT(10) UNSIGNED NOT NULL, '
-        . ' `code` VARCHAR(9) NOT NULL,'
+        . ' `code` VARCHAR(9) NOT NULL, '
+	. ' `goodfor` INT(10) UNSIGNED NOT NULL DEFAULT \'0\', '
         . ' INDEX (`diag`), INDEX(`time`), INDEX(`code`)'
         . ' )'
         . ' TYPE = innodb;';
@@ -669,6 +676,39 @@ $sql = 'CREATE TABLE `imas_calitems` ('
         . ' COMMENT = \'Calendar Items\';';
 mysql_query($sql) or die("Query failed : $sql " . mysql_error());
 echo 'imas_calitems created<br/>';
+
+$sql = 'CREATE TABLE `imas_stugroupset` ('
+        . ' `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, '
+        . ' `courseid` INT(10) UNSIGNED NOT NULL, '
+        . ' `name` VARCHAR(254) NOT NULL, '
+        . ' INDEX (`courseid`)'
+        . ' )'
+        . ' TYPE = innodb'
+        . ' COMMENT = \'Student Group Sets\';';
+mysql_query($sql) or die("Query failed : $sql " . mysql_error());
+echo 'imas_stugroupset created<br/>';
+
+$sql = 'CREATE TABLE `imas_stugroups` ('
+        . ' `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, '
+        . ' `groupsetid` INT(10) UNSIGNED NOT NULL, '
+        . ' `name` VARCHAR(254) NOT NULL, '
+        . ' INDEX (`groupsetid`)'
+        . ' )'
+        . ' TYPE = innodb'
+        . ' COMMENT = \'Student Groups\';';
+mysql_query($sql) or die("Query failed : $sql " . mysql_error());
+echo 'imas_stugroups created<br/>';
+
+$sql = 'CREATE TABLE `imas_stugroupmembers` ('
+        . ' `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, '
+        . ' `stugroupid` INT(10) UNSIGNED NOT NULL, '
+        . ' `userid` INT(10) UNSIGNED NOT NULL, '
+        . ' INDEX (`stugroupid`), INDEX (`userid`)'
+        . ' )'
+        . ' TYPE = innodb'
+        . ' COMMENT = \'Student Group Members\';';
+mysql_query($sql) or die("Query failed : $sql " . mysql_error());
+echo 'imas_stugroupmembers created<br/>';
 
 $sql = 'CREATE TABLE `imas_ltiusers` ('
         . ' `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, '

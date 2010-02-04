@@ -14,6 +14,7 @@
 		exit;
 	}
 	$actas = false;
+	$isreview = false;
 	if (isset($teacherid) && isset($_GET['actas'])) {
 		$userid = $_GET['actas'];
 		unset($teacherid);
@@ -138,10 +139,11 @@
 				unset($sessiondata['actas']);
 			}
 			$sessiondata['groupid'] = 0;
-			$query = "SELECT name,theme FROM imas_courses WHERE id='{$_GET['cid']}'";
+			$query = "SELECT name,theme,topbar FROM imas_courses WHERE id='{$_GET['cid']}'";
 			$result = mysql_query($query) or die("Query failed : $query: " . mysql_error());
 			$sessiondata['coursename'] = mysql_result($result,0,0);
 			$sessiondata['coursetheme'] = mysql_result($result,0,1);
+			$sessiondata['coursetopbar'] =  mysql_result($result,0,2);
 			if (isset($studentinfo['timelimitmult'])) {
 				$sessiondata['timelimitmult'] = $studentinfo['timelimitmult'];
 			} else {
@@ -181,10 +183,11 @@
 			
 			$sessiondata['groupid'] = $line['agroupid'];
 		
-			$query = "SELECT name,theme FROM imas_courses WHERE id='{$_GET['cid']}'";
+			$query = "SELECT name,theme,topbar FROM imas_courses WHERE id='{$_GET['cid']}'";
 			$result = mysql_query($query) or die("Query failed : $query: " . mysql_error());
 			$sessiondata['coursename'] = mysql_result($result,0,0);
 			$sessiondata['coursetheme'] = mysql_result($result,0,1);
+			$sessiondata['coursetopbar'] =  mysql_result($result,0,2);
 			if (isset($studentinfo['timelimitmult'])) {
 				$sessiondata['timelimitmult'] = $studentinfo['timelimitmult'];
 			} else {
@@ -347,6 +350,7 @@
 	$showansafterlast = ($testsettings['showans']==='F' || $testsettings['showans']==='J');
 	$noindivscores = ($testsettings['testtype']=="EndScore" || $testsettings['testtype']=="NoScores");
 	$showhints = ($testsettings['showhints']==1);
+	$showtips = $testsettings['showtips'];
 	$regenonreattempt = (($testsettings['shuffle']&8)==8);
 	
 	$reloadqi = false;
@@ -517,9 +521,16 @@
 	$useeditor = 1;
 	if ($testsettings['eqnhelper']>0) {
 		$placeinhead = '<script type="text/javascript">var eetype='.$testsettings['eqnhelper'].'</script>';
-		$placeinhead .= "<script type=\"text/javascript\" src=\"$imasroot/javascript/eqnhelper.js\"></script>";
+		$placeinhead .= "<script type=\"text/javascript\" src=\"$imasroot/javascript/eqnhelper.js?v=012810\"></script>";
+		$placeinhead .= '<style type="text/css"> div.question input.btn { margin-left: 10px; } </style>';
 		$useeqnhelper = true;
 	}
+	//IP: eqntips 
+	if ($testsettings['showtips']==2) {
+		$placeinhead .= "<script type=\"text/javascript\" src=\"$imasroot/javascript/eqntips.js?v=012810\"></script>";
+	}
+	$cid = $testsettings['courseid'];
+	
 	require("header.php");
 	if ($testsettings['noprint'] == 1) {
 		echo '<style type="text/css" media="print"> div.question, div.todoquestion, div.inactive { display: none;} </style>';
@@ -601,7 +612,7 @@
 				}
 			}
 		} else {
-			echo '<h2>Select group members</h2>';
+			echo '<div id="headershowtest" class="pagetitle"><h2>Select group members</h2></div>';
 			
 			if ($sessiondata['groupid']>0) { //adding members to existing grp
 				echo "Current Group Members: <ul>";
@@ -663,9 +674,9 @@
 	}
 	
 	//if was added to existing group, need to reload $questions, etc
-	
-	echo "<h2>{$testsettings['name']}</h2>\n";
-	if ($sessiondata['actas']) {
+	echo '<div id="headershowtest" class="pagetitle">';
+	echo "<h2>{$testsettings['name']}</h2></div>\n";
+	if (isset($sessiondata['actas'])) {
 		echo '<p style="color: red;">Teacher Acting as ';
 		$query = "SELECT LastName, FirstName FROM imas_users WHERE id='{$sessiondata['actas']}'";
 		$result = mysql_query($query) or die("Query failed : $query:" . mysql_error());
@@ -766,13 +777,14 @@
 	} else {
 		echo "<div class=right>No time limit</div>\n";
 	}
-	if ($_GET['action']=="skip" || $_GET['action']=="seq") {
-		echo "<div class=right><span onclick=\"document.getElementById('intro').className='intro';\"><a href=\"#\">Show Instructions</a></span></div>\n";
-	}
+	
 	if (isset($_GET['action'])) {
-		
+		if ($_GET['action']=="skip" || $_GET['action']=="seq") {
+			echo "<div class=right><span onclick=\"document.getElementById('intro').className='intro';\"><a href=\"#\">Show Instructions</a></span></div>\n";
+		}
 		if ($_GET['action']=="scoreall") {
 			//score test
+			$GLOBALS['scoremessages'] = '';
 			for ($i=0; $i < count($questions); $i++) {
 				//if (isset($_POST["qn$i"]) || isset($_POST['qn'.(1000*($i+1))]) || isset($_POST["qn$i-0"]) || isset($_POST['qn'.(1000*($i+1)).'-0'])) {
 					if ($_POST['verattempts'][$i]!=$attempts[$i]) {
@@ -787,6 +799,9 @@
 			$now = time();
 			if (isset($_POST['saveforlater'])) {
 				recordtestdata(true);
+				if ($GLOBALS['scoremessages'] != '') {
+					echo '<p>'.$GLOBALS['scoremessages'].'</p>';
+				}
 				echo "<p>Answers saved, but not submitted for grading.  You may continue with the test, or ";
 				echo "come back to it later. ";
 				if ($testsettings['timelimit']>0) {echo "The timelimit will continue to count down";}
@@ -795,7 +810,9 @@
 				
 			} else {
 				recordtestdata();
-				
+				if ($GLOBALS['scoremessages'] != '') {
+					echo '<p>'.$GLOBALS['scoremessages'].'</p>';
+				}
 				showscores($questions,$attempts,$testsettings);
 			
 				endtest($testsettings);
@@ -808,8 +825,11 @@
 				if ($_POST['verattempts']!=$attempts[$last]) {
 					echo "<p>The last question has been submittted since you viewed it, and that grade is shown below.  Your answer just submitted was not scored or recorded.</p>";
 				} else {
+					$GLOBALS['scoremessages'] = '';
 					$rawscore = scorequestion($last);
-					
+					if ($GLOBALS['scoremessages'] != '') {
+						echo '<p>'.$GLOBALS['scoremessages'].'</p>';
+					}
 					//record score
 					
 					recordtestdata();
@@ -872,6 +892,7 @@
 				if ($_POST['verattempts']!=$attempts[$qn]) {
 					echo "<p>This question has been submittted since you viewed it, and that grade is shown below.  Your answer just submitted was not scored or recorded.</p>";
 				} else {
+					$GLOBALS['scoremessages'] = '';
 					$rawscore = scorequestion($qn);
 					
 					//record score
@@ -884,6 +905,9 @@
 				
 				echo "<div class=inset>\n";
 				echo "<a name=\"beginquestions\"></a>\n";
+				if ($GLOBALS['scoremessages'] != '') {
+					echo '<p>'.$GLOBALS['scoremessages'].'</p>';
+				}
 				$reattemptsremain = false;
 				if ($showeachscore) {
 					$possible = $qi[$questions[$qn]]['points'];
@@ -1014,12 +1038,16 @@
 				if ($_POST['verattempts']!=$attempts[$qn]) {
 					echo "<p>The last question has been submitted since you viewed it, and that score is shown below. Your answer just submitted was not scored or recorded.</p>";
 				} else {
+					$GLOBALS['scoremessages'] = '';
 					$rawscore = scorequestion($qn);
 					//record score
 					recordtestdata();
 				}
 				
 				echo "<div class=review style=\"margin-top:5px;\">\n";
+				if ($GLOBALS['scoremessages'] != '') {
+					echo '<p>'.$GLOBALS['scoremessages'].'</p>';
+				}
 				$reattemptsremain = false;
 				if ($showeachscore) {
 					$possible = $qi[$questions[$qn]]['points'];
@@ -1281,9 +1309,10 @@
 			}
 		}
 	}
-	if ($testsettings['eqnhelper']>0) {
-		require("eqnhelper.html");
-	}
+	//IP:  eqntips
+	echo '<div id="ehdd" class="ehdd"><span id="ehddtext"></span> <span onclick="showeh(curehdd);" style="cursor:pointer;">[more..]</span></div>';
+	echo '<div id="eh" class="eh"></div>';
+
 	require("../footer.php");
 	
 	function shownavbar($questions,$scores,$current,$showcat) {

@@ -17,10 +17,10 @@ $useeditor = "description";
 $curBreadcrumb = "$breadcrumbbase <a href=\"course.php?cid={$_GET['cid']}\">$coursename</a> ";
 
 if (isset($_GET['id'])) {
-	$curBreadcrumb .= "&gt; Modify Forum</div>\n";
+	$curBreadcrumb .= "&gt; Modify Forum\n";
 	$pagetitle = "Modify Forum";
 } else {
-	$curBreadcrumb .= "&gt; Add Forum</div>\n";
+	$curBreadcrumb .= "&gt; Add Forum\n";
 	$pagetitle = "Add Forum";
 } 
 if (isset($_GET['tb'])) {
@@ -156,7 +156,7 @@ if (!(isset($teacherid))) { // loaded by a NON-teacher
 			$enddate = $line['enddate'];
 			$allowanon = (($line['settings']&1)==1);
 			$allowmod = (($line['settings']&2)==2);
-			//$allowdel = (($line['settings']&4)==4);
+			$allowdel = (($line['settings']&4)==4);
 			$sortby = $line['sortby'];
 			$defdisplay = $line['defdisplay'];
 			$replyby = $line['replyby'];
@@ -255,7 +255,7 @@ if ($overwriteBody==1) {
 ?>
 	
 	<div class=breadcrumb><?php echo $curBreadcrumb ?></div>
-	<h2><?php echo $pagetitle ?><img src="<?php echo $imasroot ?>/img/help.gif" alt="Help" onClick="window.open('<?php echo $imasroot ?>/help.php?section=forumitems','help','top=0,width=400,height=500,scrollbars=1,left='+(screen.width-420))"/></h2>
+	<div id="headeraddforum" class="pagetitle"><h2><?php echo $pagetitle ?><img src="<?php echo $imasroot ?>/img/help.gif" alt="Help" onClick="window.open('<?php echo $imasroot ?>/help.php?section=forumitems','help','top=0,width=400,height=500,scrollbars=1,left='+(screen.width-420))"/></h2></div>
 
 	<form method=post action="addforum.php<?php echo $page_formActionTag ?>">
 		<span class=form>Name: </span>
@@ -311,6 +311,11 @@ if ($overwriteBody==1) {
 		<span class=form>Allow students to modify posts:</span>
 		<span class=formright>
 			<input type=checkbox name="allowmod" value="1" <?php if ($allowmod) { echo "checked=1";}?>/>
+		</span><br class="form"/>
+		
+		<span class=form>Allow students to delete own posts (if no replies):</span>
+		<span class=formright>
+			<input type=checkbox name="allowdel" value="1" <?php if ($allowdel) { echo "checked=1";}?>/>
 		</span><br class="form"/>
 		
 		<span class=form>Get email notify of new posts:</span>

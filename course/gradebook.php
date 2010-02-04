@@ -27,6 +27,12 @@ if (isset($tutorid)) {
 	$istutor = true;
 }
 if ($isteacher || $istutor) {
+	$canviewall = true;
+} else {
+	$canviewall = false;
+}
+
+if ($canviewall) {
 	if (isset($_GET['gbmode']) && $_GET['gbmode']!='') {
 		$gbmode = $_GET['gbmode'];
 		$sessiondata[$cid.'gbmode'] = $gbmode;
@@ -79,7 +85,7 @@ if ($isteacher || $istutor) {
 	$totonleft = 0;
 }
 
-if (($isteacher || $istutor) && isset($_GET['stu'])) {
+if ($canviewall && isset($_GET['stu'])) {
 	$stu = $_GET['stu'];
 } else {
 	$stu = 0;
@@ -126,7 +132,7 @@ require("gbtable2.php");
 require("../includes/htmlutil.php");
 
 $placeinhead = '';
-if ($isteacher || $istutor) {
+if ($canviewall) {
 	$placeinhead .= "<script type=\"text/javascript\">";
 	$placeinhead .= 'function chgfilter() { ';
 	$placeinhead .= '       var cat = document.getElementById("filtersel").value; ';
@@ -192,11 +198,11 @@ if (isset($studentid) || $stu!=0) { //show student view
 		echo "&gt; Gradebook</div>";
 	}
 	if ($stu==-1) {
-		echo "<h2>Grade Book Averages </h2>\n";
+		echo '<div id="headergradebook" class="pagetitle"><h2>Grade Book Averages </h2></div>';
 	} else {
-		echo "<h2>Grade Book Student Detail </h2>\n";
+		echo '<div id="headergradebook" class="pagetitle"><h2>Grade Book Student Detail</h2></div>';
 	}
-	if ($isteacher || $istutor) {
+	if ($canviewall) {
 		echo "<div class=cpmid>";
 		echo 'Category: <select id="filtersel" onchange="chgfilter()">';
 		echo '<option value="-1" ';
@@ -229,9 +235,9 @@ if (isset($studentid) || $stu!=0) { //show student view
 		echo " | Links: <select id=\"toggle1\" onchange=\"chgtoggle()\">";
 		echo "<option value=0 "; writeHtmlSelected($links,0); echo ">View/Edit</option>";
 		echo "<option value=1 "; writeHtmlSelected($links,1); echo ">Scores</option></select>";
+		echo '<input type="hidden" id="toggle4" value="'.$showpics.'" />';
 		echo "</div>";
 	}
-	
 	gbstudisp($stu);
 	echo "<p>Meanings:  IP-In Progress, OT-overtime, PT-practice test, EC-extra credit, NC-no credit<br/><sub>d</sub> Dropped score.  <sup>e</sup> Has exception/latepass  </p>\n";
 	
@@ -298,11 +304,11 @@ if (isset($studentid) || $stu!=0) { //show student view
 	echo "&gt; Gradebook</div>";
 	echo "<form method=post action=\"gradebook.php?cid=$cid\">";
 	
-	echo '<span class="hdr1">Grade Book </span><span class="red" id="newflag">';
+	echo '<div id="headergradebook" class="pagetitle"><h2>Gradebook <span class="red" id="newflag" style="font-size: 70%" >';
 	if (($coursenewflag&1)==1) {
 		echo 'New';
 	}
-	echo '</span>';
+	echo '</span></h2></div>';
 	if ($isdiag) {
 		echo "<a href=\"gb-testing.php?cid=$cid\">View diagnostic gradebook</a>";
 	}
@@ -387,8 +393,9 @@ if (isset($studentid) || $stu!=0) { //show student view
 	$gbt = gbinstrdisp();
 	echo "</form>";
 	echo "</div>";
-	require("../footer.php");
 	echo "Meanings:  IP-In Progress, OT-overtime, PT-practice test, EC-extra credit, NC-no credit<br/><sup>*</sup> Has feedback, <sub>d</sub> Dropped score, <sup>e</sup> Has exception/latepass\n";
+	require("../footer.php");
+	
 	/*if ($isteacher) {
 		echo "<div class=cp>";
 		echo "<a href=\"addgrades.php?cid=$cid&gbitem=new&grades=all\">Add Offline Grade</a><br/>";
@@ -401,7 +408,7 @@ if (isset($studentid) || $stu!=0) { //show student view
 }
 
 function gbstudisp($stu) {
-	global $hidenc,$cid,$gbmode,$availshow,$isteacher,$istutor,$catfilter,$imasroot;
+	global $hidenc,$cid,$gbmode,$availshow,$isteacher,$istutor,$catfilter,$imasroot,$canviewall;
 	if ($availshow==3) {
 		$availshow=1;
 		$hidepast = true;

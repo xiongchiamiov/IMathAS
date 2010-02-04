@@ -7,11 +7,24 @@
 	 header("Location: http://" . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['PHP_SELF']), '/\\') . "/install.php");
  }
  require_once("$curdir/config.php");
- if (isset($sessionpath)) { session_save_path($sessionpath);}
+ if (isset($sessionpath) && $sessionpath!='') { session_save_path($sessionpath);}
  ini_set('session.gc_maxlifetime',86400);
  ini_set('auto_detect_line_endings',true);
  session_start();
  $sessionid = session_id();
+ 
+ $myrights = 0;
+ $ispublic = false;
+ //domain checks for special themes, etc. if desired
+ $requestaddress = $_SERVER['HTTP_HOST'] .$_SERVER['PHP_SELF'];
+ if (isset($CFG['CPS']['theme'])) {
+ 	 $defaultcoursetheme = $CFG['CPS']['theme'][0];
+ } else if (!isset($defaultcoursetheme)) {
+	 $defaultcoursetheme = "default.css";
+ }
+ $coursetheme = $defaultcoursetheme; //will be overwritten later if set
+ 
+ 
  //check for bad sessionids.  
  if (strlen($sessionid)<10) { 
 	 if (function_exists('session_regenerate_id')) { session_regenerate_id(); }
@@ -230,7 +243,6 @@ END;
 	$userdeflib = $line['deflib'];
 	$userfullname = $line['FirstName'] . ' ' . $line['LastName'];
 	$previewshift = -1;
-	$coursetheme = "default.css";
 	$basephysicaldir = rtrim(dirname(__FILE__), '/\\');
 	if (isset($sessiondata['isdiag']) && strpos(basename($_SERVER['PHP_SELF']),'showtest.php')===false) {
 		header("Location: http://" . $_SERVER['HTTP_HOST'] . $imasroot . "/assessment/showtest.php");
@@ -256,12 +268,14 @@ END;
 		$breadcrumbbase = "<a href=\"$imasroot/index.php\">Home</a> &gt; ";
 	}
 	if (isset($_GET['cid']) && $_GET['cid']!="admin" && $_GET['cid']>0) {
-		$query = "SELECT id,locked,timelimitmult FROM imas_students WHERE userid='$userid' AND courseid='{$_GET['cid']}'";
+		$cid = $_GET['cid'];
+		$query = "SELECT id,locked,timelimitmult,section FROM imas_students WHERE userid='$userid' AND courseid='{$_GET['cid']}'";
 		$result = mysql_query($query) or die("Query failed : " . mysql_error());
 		$line = mysql_fetch_array($result, MYSQL_ASSOC);
 		if ($line != null) {
 			$studentid = $line['id'];
 			$studentinfo['timelimitmult'] = $line['timelimitmult'];
+			$studentinfo['section'] = $line['section'];
 			if ($line['locked']==1) {
 				require("header.php");
 				echo "<p>You have been locked out of this course by your instructor.  Please see your instructor for more information.</p>";
@@ -307,7 +321,7 @@ END;
 		
 			}
 		}
-		$query = "SELECT imas_courses.name,imas_courses.available,imas_courses.lockaid,imas_courses.copyrights,imas_users.groupid,imas_courses.theme,imas_courses.newflag ";
+		$query = "SELECT imas_courses.name,imas_courses.available,imas_courses.lockaid,imas_courses.copyrights,imas_users.groupid,imas_courses.theme,imas_courses.newflag,imas_courses.msgset,imas_courses.topbar ";
 		$query .= "FROM imas_courses,imas_users WHERE imas_courses.id='{$_GET['cid']}' AND imas_users.id=imas_courses.ownerid";
 		$result = mysql_query($query) or die("Query failed : " . mysql_error());
 		if (mysql_num_rows($result)>0) {
@@ -315,6 +329,13 @@ END;
 			$coursename = $crow[0]; //mysql_result($result,0,0);
 			$coursetheme = $crow[5]; //mysql_result($result,0,5);
 			$coursenewflag = $crow[6]; //mysql_result($result,0,6);
+			$coursemsgset = $crow[7]%5;
+			$coursetopbar = explode('|',$crow[8]);
+			$coursetopbar[0] = explode(',',$coursetopbar[0]);
+			$coursetopbar[1] = explode(',',$coursetopbar[1]);
+			if (!isset($coursetopbar[2])) { $coursetopbar[2] = 0;}
+			if ($coursetopbar[0][0] == null) {unset($coursetopbar[0][0]);}
+			if ($coursetopbar[1][0] == null) {unset($coursetopbar[1][0]);}
 			if (isset($studentid) && $previewshift==-1 && (($crow[1])&1)==1) {
 				echo "This course is not available at this time";
 				exit;
@@ -346,7 +367,10 @@ END;
  
  if (!$verified) {
 	if (strpos(basename($_SERVER['SCRIPT_NAME']),'directaccess.php')===false) {
-		require("loginpage.php");
+		if (!isset($loginpage)) {
+			 $loginpage = "loginpage.php";
+		}
+		require($loginpage);
 		exit;
 	} 
  }

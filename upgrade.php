@@ -1,6 +1,6 @@
 <?php  
 //change counter; increase by 1 each time a change is made
-$latest = 21;
+$latest = 27;
 
 if (!empty($dbsetup)) {  //initial setup - just write upgradecounter.txt
 	$handle = fopen("upgradecounter.txt",'w');
@@ -187,37 +187,170 @@ if (!empty($dbsetup)) {  //initial setup - just write upgradecounter.txt
 		}
 		if ($last < 15) {
 			$query = "ALTER TABLE `imas_linkedtext` ADD `target` TINYINT( 1 ) UNSIGNED NOT NULL DEFAULT '0';";
-			mysql_query($query) or die("Query failed : " . mysql_error());
+			$res =  mysql_query($query);
+			 if ($res===false) {
+				 echo "<p>Query failed: ($query) : ".mysql_error()."</p>";
+			 }
 		}
 		if ($last < 16) {
 			 $query = "ALTER TABLE `imas_forum_posts` CHANGE `points` `points` DECIMAL( 5, 1 ) UNSIGNED NULL DEFAULT NULL"; 
-			 mysql_query($query) or die("Query failed : " . mysql_error());
+			 $res =  mysql_query($query);
+			 if ($res===false) {
+				 echo "<p>Query failed: ($query) : ".mysql_error()."</p>";
+			 }
 			 echo "<p>SimpleLTI has been deprecated and replaced with BasicLTI.  If you have enablesimplelti in your config.php, change it to enablebasiclti.  ";
 			 echo "If you do not have either currently in your config.php and want to allow imathas to act as a BasicLTI producer, add \$enablebasiclti = true to config.php</p>";
 		}
 		if ($last < 17) {
 			 $query = "ALTER TABLE `imas_assessments` ADD `eqnhelper` TINYINT( 1 ) UNSIGNED NOT NULL DEFAULT '0';"; 
-			 mysql_query($query) or die("Query failed : " . mysql_error());
+			 $res =  mysql_query($query);
+			 if ($res===false) {
+				 echo "<p>Query failed: ($query) : ".mysql_error()."</p>";
+			 }
 		}
 		if ($last < 18) {
 			 $query = "ALTER TABLE `imas_courses` ADD `newflag` TINYINT( 1 ) UNSIGNED NOT NULL DEFAULT '0';"; 
-			 mysql_query($query) or die("Query failed : " . mysql_error());
+			$res =  mysql_query($query);
+			 if ($res===false) {
+				 echo "<p>Query failed: ($query) : ".mysql_error()."</p>";
+			 }
 		}
 		if ($last < 19) {
 			 $query = "ALTER TABLE `imas_students` ADD `timelimitmult` DECIMAL(3,2) UNSIGNED NOT NULL DEFAULT '1.0';"; 
-			 mysql_query($query) or die("Query failed : " . mysql_error());
+			 $res =  mysql_query($query);
+			 if ($res===false) {
+				 echo "<p>Query failed: ($query) : ".mysql_error()."</p>";
+			 }
 		}
 		if ($last < 20) {
 			 $query = "ALTER TABLE `imas_assessments` ADD `caltag` CHAR( 2 ) NOT NULL DEFAULT '?R';"; 
-			 mysql_query($query) or die("Query failed : " . mysql_error());
+			 $res = mysql_query($query);
+			 if ($res===false) {
+				 echo "<p>Query failed: ($query) : ".mysql_error()."</p>";
+			 }
 		}
 		if ($last < 21) {
 			 $query = "ALTER TABLE `imas_courses` ADD `showlatepass` TINYINT( 1 ) UNSIGNED NOT NULL DEFAULT '0';"; 
-			 mysql_query($query) or die("Query failed : " . mysql_error());
+			 $res = mysql_query($query);
+			 if ($res===false) {
+				 echo "<p>Query failed: ($query) : ".mysql_error()."</p>";
+			 }
+		}
+		if ($last < 22) {
+			 $query = "ALTER TABLE `imas_assessments` ADD `showtips` TINYINT( 1 ) NOT NULL DEFAULT '1';"; 
+			 $res = mysql_query($query);
+			 if ($res===false) {
+				 echo "<p>Query failed: ($query) : ".mysql_error()."</p>";
+			 }
+		}
+		if ($last < 23) {
+			$query = 'CREATE TABLE `imas_stugroupset` ('
+				. ' `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, '
+				. ' `courseid` INT(10) UNSIGNED NOT NULL, '
+				. ' `name` VARCHAR(254) NOT NULL, '
+				. ' INDEX (`courseid`)'
+				. ' )'
+				. ' TYPE = innodb'
+				. ' COMMENT = \'Student Group Sets\';';
+			$res = mysql_query($query);
+			if ($res===false) {
+				 echo "<p>Query failed: ($query) : ".mysql_error()."</p>";
+			}
+			echo '<p>imas_stugroupset created<br/>';
+			
+			$query = 'CREATE TABLE `imas_stugroups` ('
+				. ' `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, '
+				. ' `groupsetid` INT(10) UNSIGNED NOT NULL, '
+				. ' `name` VARCHAR(254) NOT NULL, '
+				. ' INDEX (`groupsetid`)'
+				. ' )'
+				. ' TYPE = innodb'
+				. ' COMMENT = \'Student Groups\';';
+			$res = mysql_query($query);
+			if ($res===false) {
+				 echo "<p>Query failed: ($query) : ".mysql_error()."</p>";
+			}
+			echo 'imas_stugroups created<br/>';
+			
+			$query = 'CREATE TABLE `imas_stugroupmembers` ('
+				. ' `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, '
+				. ' `stugroupid` INT(10) UNSIGNED NOT NULL, '
+				. ' `userid` INT(10) UNSIGNED NOT NULL, '
+				. ' INDEX (`stugroupid`), INDEX (`userid`)'
+				. ' )'
+				. ' TYPE = innodb'
+				. ' COMMENT = \'Student Group Members\';';
+			$res = mysql_query($query);
+			if ($res===false) {
+				 echo "<p>Query failed: ($query) : ".mysql_error()."</p>";
+			}
+			echo 'imas_stugroupmembers created<br/></p>';
+			echo '<p>It is now possible to specify a default course theme by setting $defaultcoursetheme = "theme.css"; in config.php</p>';
+			
+		}
+		if ($last < 24) {
+			 $query = "ALTER TABLE `imas_assessments` ADD `groupsetid` INT( 10 ) UNSIGNED NOT NULL DEFAULT '0';"; 
+			 $res = mysql_query($query);
+			 if ($res===false) {
+				 echo "<p>Query failed: ($query) : ".mysql_error()."</p>";
+			 }
+	
+			 $query = "ALTER TABLE `imas_forums` ADD `groupsetid` INT( 10 ) UNSIGNED NOT NULL DEFAULT '0';"; 
+			 $res = mysql_query($query);
+			 if ($res===false) {
+				 echo "<p>Query failed: ($query) : ".mysql_error()."</p>";
+			 }
+			 /*later (once groups are done)
+			 $query = "ALTER TABLE `imas_forums` DROP COLUMN `grpaid`"; 
+			 $res = mysql_query($query);
+			 if ($res===false) {
+				 echo "<p>Query failed: ($query) : ".mysql_error()."</p>";
+			 }
+			 */
+			 $query = "ALTER TABLE `imas_forum_threads` ADD `stugroupid` INT( 10 ) UNSIGNED NOT NULL DEFAULT '0';"; 
+			 $res = mysql_query($query);
+			 if ($res===false) {
+				 echo "<p>Query failed: ($query) : ".mysql_error()."</p>";
+			 }
+			 
+			 $query = "ALTER TABLE `imas_forum_threads` ADD INDEX(`stugroupid`);"; 
+			 $res = mysql_query($query);
+			 if ($res===false) {
+				 echo "<p>Query failed: ($query) : ".mysql_error()."</p>";
+			 }
+			
+		}
+		if ($last < 25) {
+			 $query = "ALTER TABLE `imas_libraries` ADD `sortorder` TINYINT( 1 ) UNSIGNED NOT NULL DEFAULT '0';"; 
+			 $res = mysql_query($query);
+			 if ($res===false) {
+				 echo "<p>Query failed: ($query) : ".mysql_error()."</p>";
+			 }
+		}
+		if ($last < 26) {
+			 $query = "ALTER TABLE `imas_users` ADD `homelayout` VARCHAR(32) NOT NULL DEFAULT '|0,2,3||0,1'"; 
+			 $res = mysql_query($query);
+			 if ($res===false) {
+				 echo "<p>Query failed: ($query) : ".mysql_error()."</p>";
+			 }
+		}
+		if ($last < 27) {
+			$query = "ALTER TABLE `imas_diag_onetime` ADD `goodfor` INT(10) NOT NULL DEFAULT '0'"; 
+			 $res = mysql_query($query);
+			 if ($res===false) {
+				 echo "<p>Query failed: ($query) : ".mysql_error()."</p>";
+			 }
 		}
 		$handle = fopen("upgradecounter.txt",'w');
-		fwrite($handle,$latest);
-		fclose($handle);
+		if ($handle===false) {
+			echo '<p>Error: unable open upgradecounter.txt for writing</p>';
+		} else {
+			$fwrite = fwrite($handle,$latest);
+			if ($fwrite === false) {
+				echo '<p>Error: unable to write to upgradecounter.txt</p>';
+			}
+			fclose($handle);
+		}
 		echo "Upgrades complete";
 	}	
 }

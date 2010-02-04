@@ -87,7 +87,9 @@
 	}
 	
 	
-	echo "<p><b style=\"font-size: 120%\">Grades for $name</b><br/>$totalpossible points possible</p>";
+	echo '<div id="headerisolateassessgrade" class="pagetitle"><h2>';
+	echo "Grades for $name</h2></div>";
+	echo "<p>$totalpossible points possible</p>";
 	
 //	$query = "SELECT iu.LastName,iu.FirstName,istu.section,istu.timelimitmult,";
 //	$query .= "ias.id,ias.userid,ias.bestscores,ias.starttime,ias.endtime,ias.feedback FROM imas_assessment_sessions AS ias,imas_users AS iu,imas_students AS istu ";
@@ -114,7 +116,7 @@
 	if ($hassection) {
 		echo '<th>Section</th>';
 	}
-	echo "<th>Grade</th><th>Feedback</th></tr></thead><tbody>";
+	echo "<th>Grade</th><th>%</th><th>Feedback</th></tr></thead><tbody>";
 	$now = time();
 	$lc = 1;
 	$n = 0;
@@ -139,7 +141,7 @@
 		$timeused = $line['endtime']-$line['starttime'];
 		
 		if ($line['id']==null) {
-			echo "<td><a href=\"gb-viewasid.php?gbmode=$gbmode&cid=$cid&asid=new&uid={$line['userid']}&from=isolate&aid=$aid\">-</a></td><td></td>";		
+			echo "<td><a href=\"gb-viewasid.php?gbmode=$gbmode&cid=$cid&asid=new&uid={$line['userid']}&from=isolate&aid=$aid\">-</a></td><td>-</td><td></td>";		
 		} else {
 			echo "<td><a href=\"gb-viewasid.php?gbmode=$gbmode&cid=$cid&asid={$line['id']}&uid={$line['userid']}&from=isolate&aid=$aid\">";
 			if ($total<$minscore) {
@@ -157,6 +159,11 @@
 			}
 	
 			echo "</a></td>";
+			if ($totalpossible>0) {
+				echo '<td>'.round(100*($total)/$totalpossible,1).'%</td>';
+			} else {
+				echo '<td></td>';
+			}
 			echo "<td>{$line['feedback']}</td>";
 		}
 		echo "</tr>";
@@ -165,7 +172,7 @@
 	if ($hassection) {
 		echo '<td></td>';
 	}
-	echo "<td><a href=\"gb-itemanalysis.php?cid=$cid&aid=$aid\">";
+	echo "<td><a href=\"gb-itemanalysis.php?cid=$cid&aid=$aid&from=isolate\">";
 	if ($n>0) {
 		echo round($tot/$n,1);
 	} else {

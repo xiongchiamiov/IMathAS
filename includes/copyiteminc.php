@@ -67,10 +67,10 @@ function copyitem($itemid,$gbcats) {
 		$query = "SELECT name,description,startdate,enddate,settings,defdisplay,replyby,postby,avail,points,cntingb,gbcategory FROM imas_forums WHERE id='$typeid'";
 		$result = mysql_query($query) or die("Query failed :$query " . mysql_error());
 		$row = mysql_fetch_row($result);
-		if (isset($gbcats[$row[10]])) {
-			$row[10] = $gbcats[$row[10]];
+		if (isset($gbcats[$row[11]])) {
+			$row[11] = $gbcats[$row[11]];
 		} else if ($_POST['ctc']!=$cid) {
-			$row[10] = 0;
+			$row[11] = 0;
 		}
 		$row[0] .= stripslashes($_POST['append']);
 		$row = "'".implode("','",addslashes_deep($row))."'";
@@ -82,7 +82,7 @@ function copyitem($itemid,$gbcats) {
 		//$query = "INSERT INTO imas_assessments (courseid,name,summary,intro,startdate,enddate,timelimit,displaymethod,defpoints,defattempts,deffeedback,defpenalty,shuffle) ";
 		//$query .= "SELECT '$cid',name,summary,intro,startdate,enddate,timelimit,displaymethod,defpoints,defattempts,deffeedback,defpenalty,shuffle FROM imas_assessments WHERE id='$typeid'";
 		//mysql_query($query) or die("Query failed : $query" . mysql_error());
-		$query = "SELECT name,summary,intro,startdate,enddate,reviewdate,timelimit,minscore,displaymethod,defpoints,defattempts,deffeedback,defpenalty,shuffle,gbcategory,password,cntingb,showcat,showhints,isgroup,allowlate,exceptionpenalty,noprint,avail,groupmax,endmsg,eqnhelper,caltag FROM imas_assessments WHERE id='$typeid'";
+		$query = "SELECT name,summary,intro,startdate,enddate,reviewdate,timelimit,minscore,displaymethod,defpoints,defattempts,deffeedback,defpenalty,shuffle,gbcategory,password,cntingb,showcat,showhints,showtips,isgroup,allowlate,exceptionpenalty,noprint,avail,groupmax,endmsg,eqnhelper,caltag FROM imas_assessments WHERE id='$typeid'";
 		$result = mysql_query($query) or die("Query failed :$query " . mysql_error());
 		$row = mysql_fetch_row($result);
 		if (isset($gbcats[$row[14]])) {
@@ -92,7 +92,7 @@ function copyitem($itemid,$gbcats) {
 		}
 		$row[0] .= stripslashes($_POST['append']);
 		$row = "'".implode("','",addslashes_deep($row))."'";
-		$query = "INSERT INTO imas_assessments (courseid,name,summary,intro,startdate,enddate,reviewdate,timelimit,minscore,displaymethod,defpoints,defattempts,deffeedback,defpenalty,shuffle,gbcategory,password,cntingb,showcat,showhints,isgroup,allowlate,exceptionpenalty,noprint,avail,groupmax,endmsg,eqnhelper,caltag) ";
+		$query = "INSERT INTO imas_assessments (courseid,name,summary,intro,startdate,enddate,reviewdate,timelimit,minscore,displaymethod,defpoints,defattempts,deffeedback,defpenalty,shuffle,gbcategory,password,cntingb,showcat,showhints,showtips,isgroup,allowlate,exceptionpenalty,noprint,avail,groupmax,endmsg,eqnhelper,caltag) ";
 		$query .= "VALUES ('$cid',$row)";
 		mysql_query($query) or die("Query failed : $query" . mysql_error());
 		$newtypeid = mysql_insert_id();

@@ -3,8 +3,8 @@
 //(c) 2006 David Lippman
 
 
-array_push($allowedmacros,"exp","sec","csc","cot","sech","csch","coth","rand","rrand","rands","rrands","randfrom","randsfrom","jointrandfrom","diffrandsfrom","nonzerorand","nonzerorrand","nonzerorands","nonzerorrands","diffrands","diffrrands","nonzerodiffrands","nonzerodiffrrands","singleshuffle","jointshuffle","makepretty","makeprettydisp","showplot","addlabel","showarrays","horizshowarrays","showasciisvg","listtoarray","arraytolist","calclisttoarray","sortarray","consecutive","gcd","lcm","calconarray","mergearrays","sumarray","dispreducedfraction","diffarrays","intersectarrays","joinarray","unionarrays","count","polymakepretty","polymakeprettydisp","makexpretty","makexprettydisp","calconarrayif","in_array","prettyint","prettyreal","arraystodots","subarray","showdataarray","arraystodoteqns","array_flip","arrayfindindex","fillarray","array_reverse");
-array_push($allowedmacros,"numtowords","randname","randmalename","randfemalename","randnames","randmalenames","randfemalenames","prettytime","definefunc","evalfunc","safepow","arrayfindindices","stringtoarray","strtoupper","strtolower","ucfirst","makereducedfraction","stringappend","stringprepend","textonimage","addplotborder","addlabelabs","makescinot","today","numtoroman","sprintf","arrayhasduplicates","addfractionaxislabels","decimaltofraction","ifthen","multicalconarray","htmlentities","formhoverover","formpopup");
+array_push($allowedmacros,"exp","sec","csc","cot","sech","csch","coth","rand","rrand","rands","rrands","randfrom","randsfrom","jointrandfrom","diffrandsfrom","nonzerorand","nonzerorrand","nonzerorands","nonzerorrands","diffrands","diffrrands","nonzerodiffrands","nonzerodiffrrands","singleshuffle","jointshuffle","makepretty","makeprettydisp","showplot","addlabel","showarrays","horizshowarrays","showasciisvg","listtoarray","arraytolist","calclisttoarray","sortarray","consecutive","gcd","lcm","calconarray","mergearrays","sumarray","dispreducedfraction","diffarrays","intersectarrays","joinarray","unionarrays","count","polymakepretty","polymakeprettydisp","makexpretty","makexprettydisp","calconarrayif","in_array","prettyint","prettyreal","arraystodots","subarray","showdataarray","arraystodoteqns","array_flip","arrayfindindex","fillarray","array_reverse","root");
+array_push($allowedmacros,"numtowords","randname","randmalename","randfemalename","randnames","randmalenames","randfemalenames","randcity","randcities","prettytime","definefunc","evalfunc","safepow","arrayfindindices","stringtoarray","strtoupper","strtolower","ucfirst","makereducedfraction","stringappend","stringprepend","textonimage","addplotborder","addlabelabs","makescinot","today","numtoroman","sprintf","arrayhasduplicates","addfractionaxislabels","decimaltofraction","ifthen","multicalconarray","htmlentities","formhoverover","formpopup","connectthedots","jointsort","stringpos","stringlen");
 function mergearrays($a,$b) {
 	if (!is_array($a)) {
 		$a = array($a);
@@ -20,13 +20,39 @@ function arrayfindindex($n,$h) {
 function arrayfindindices($n,$h) {
 	return array_keys($h,$n);	
 }
+function stringlen($str) {
+	return strlen($str);
+}
+function stringpos($n,$h) {
+	$p = strpos($h,$n);
+	if ($p===false) {
+		$p = -1;
+	}
+	return $p;
+}
 function stringtoarray($str) {
         $str_array=array();
         $len=strlen($str);
         for($i=0;$i<$len;$i++) {$str_array[]=$str{$i};}
         return $str_array;
 }
-       
+function jointsort() {
+	$in = func_get_args();
+	if (count($in)<2 || !is_array($in[0]) || !is_array($in[1])) {
+		echo "jointsort needs at least two input arrays";
+		return array();
+	}
+	$a = array_shift($in);
+	asort($a);
+	$out = array();
+	foreach ($a as $k=>$v) {
+		for($i=0;$i<count($in);$i++) {
+			$out[$i][] = $in[$i][$k];
+		}
+	}
+	array_unshift($out,$a);
+	return $out;
+}
 
 //$funcs can be a string or an array of strings.  Each string should have format:
 //"function,color,xmin,xmax,startmarker,endmarker,strokewidth,strokedash"
@@ -41,8 +67,12 @@ function showplot($funcs) { //optional arguments:  $xmin,$xmax,$ymin,$ymax,label
 	}
 	$ymin = $settings[2];
 	$ymax = $settings[3];
+	$xxmin = $settings[0] - 5*($settings[1] - $settings[0])/$settings[6];
+	$xxmax = $settings[1] + 5*($settings[1] - $settings[0])/$settings[6];
+	$yymin = $settings[2] - 5*($settings[3] - $settings[2])/$settings[7];
+	$yymax = $settings[3] + 5*($settings[3] - $settings[2])/$settings[7];
 	$yminauto = false;
-	$yminauto = false;
+	$ymaxauto = false;
 	if (substr($ymin,0,4)=='auto') {
 		$yminauto = true;
 		if (strpos($ymin,':')!==false) {
@@ -99,7 +129,10 @@ function showplot($funcs) { //optional arguments:  $xmin,$xmax,$ymin,$ymax,label
 		$alt .= "Start Graph";
 		$function = explode(",",$function);
 		//correct for parametric
-		if (strpos($function[0],"[")===0) {
+		$isparametric = false;
+		$isineq = false;
+		$isxequals = false;
+		if ($function[0]{0}=='[') { //strpos($function[0],"[")===0) {
 			$isparametric = true;
 			$xfunc = makepretty(str_replace("[","",$function[0]));
 			$xfunc = mathphp($xfunc,"t");
@@ -110,8 +143,33 @@ function showplot($funcs) { //optional arguments:  $xmin,$xmax,$ymin,$ymax,label
 			array_shift($function);
 			$evalxfunc = create_function('$t','return('.$xfunc.');');
 			$evalyfunc = create_function('$t','return('.$yfunc.');');
+		} else if ($function[0]{0}=='<' || $function[0]{0}=='>') {
+			$isineq = true;
+			if ($function[0]{1}=='=') {
+				$ineqtype = substr($function[0],0,2);
+				$func = makepretty(substr($function[0],2));
+			} else {
+				$ineqtype = $function[0]{0};
+				$func = makepretty(substr($function[0],1));
+			}
+			$func = mathphp($func,"x");
+			$func = str_replace("(x)",'($x)',$func);
+			$evalfunc = create_function('$x','return('.$func.');');	
+		} else if (strlen($function[0])>1 && $function[0]{0}=='x' && ($function[0]{1}=='<' || $function[0]{1}=='>' || $function[0]{1}=='=')) {
+			$isxequals = true;
+			if ($function[0]{1}=='=') {
+				$val = substr($function[0],2);
+			} else {
+				$isineq = true;
+				if ($function[0]{2}=='=') {
+					$ineqtype = substr($function[0],1,2);
+					$val= substr($function[0],3);
+				} else {
+					$ineqtype = $function[0]{1};
+					$val = substr($function[0],2);
+				}
+			}
 		} else {
-			$isparametric = false;
 			$func = makepretty($function[0]);
 			$func = mathphp($func,"x");
 			$func = str_replace("(x)",'($x)',$func);
@@ -122,19 +180,22 @@ function showplot($funcs) { //optional arguments:  $xmin,$xmax,$ymin,$ymax,label
 		
 		
 		$path = '';
-		if ($function[1]!='') {
+		if (isset($function[1]) && $function[1]!='') {
 			$path .= "stroke=\"{$function[1]}\";";
 			$alt .= ", Color {$function[1]}";
 		} else {
 			$path .= "stroke=\"black\";";
 			$alt .= ", Color black";
 		}
-		if ($function[6]!='') {
+		if (isset($function[6]) && $function[6]!='') {
 			$path .= "strokewidth=\"{$function[6]}\";";
 		} else {
 			$path .= "strokewidth=\"1\";";
 		}
-		if ($function[7]!='') {
+		if ($isineq && strlen($ineqtype)==1) {  //is < or >
+			$path .= "strokedasharray=\"5\";";
+			$alt .= ", Dashed";
+		} else if (isset($function[7]) && $function[7]!='') {
 			if ($function[7]=="dash") {
 				$path .= "strokedasharray=\"5\";";
 				$alt .= ", Dashed";
@@ -144,19 +205,44 @@ function showplot($funcs) { //optional arguments:  $xmin,$xmax,$ymin,$ymax,label
 		} else {
 			$path .= "strokedasharray=\"none\";";
 		}
+		$path .= "fill=\"none\";";
 		
+		if ($isxequals) { //handle x-equals case separately
+			$alt .= "<table class=stats><thead><tr><th>x</th><th>y</th></thead></tr><tbody>";
+			$alt .= "<tr><td>$val</td><td>$ymin</td></tr>";
+			$alt .= "<tr><td>$val</td><td>$ymax</td></tr>";
+			$alt .= '</tbody></table>';
+			$path .= "line([$val,$ymin],[$val,$ymax]);";
+			$path .= "stroke=\"none\";strokedasharray=\"none\";";
+			if ($function[1]=='red' || $function[1]=='green') {
+				$path .= "fill=\"trans{$function[1]}\";";
+			} else {
+				$path .= "fill=\"transblue\";";
+			}
+			if ($isineq) {
+				if ($ineqtype{0}=='<') {
+					$path .= "rect([$xxmin,$yymin],[$val,$yymax]);";
+					$alt .= "Shaded left";
+				} else {
+					$path .= "rect([$val,$yymin],[$xxmax,$yymax]);";
+					$alt .= "Shaded right";
+				}
+			}
+			$commands .= $path;
+			continue;
+		}
 		$avoid = array();
-		if ($function[2]!='') {$xmin = $function[2];} else {$xmin = $settings[0];}
-		if ($function[3]!='') {
+		$domainlimited = false;
+		if (isset($function[2]) && $function[2]!='') {
+			$xmin = $function[2]; 
+			$domainlimited = true;
+		} else {$xmin = $settings[0];}
+		if (isset($function[3]) && $function[3]!='') {
 			$xmaxarr = explode('!',$function[3]);
 			$xmax = $xmaxarr[0];
 			$avoid = array_slice($xmaxarr,1);
-		} else {$xmax = $settings[1];}
-		if ($function[2]!='' || $function[3]!='') {
 			$domainlimited = true;
-		} else {
-			$domainlimited = false;
-		}
+		} else {$xmax = $settings[1];}
 		
 		if ($GLOBALS['sessiondata']['graphdisp']==0) {
 			$dx = 1;
@@ -173,6 +259,8 @@ function showplot($funcs) { //optional arguments:  $xmin,$xmax,$ymin,$ymax,label
 		$lastl = 0;
 		$px = null;
 		$py = null;
+		$pathstr = '';
+		$firstpoint = false;
 		for ($i = 0; $i<$stopat;$i++) {
 			if ($isparametric) {
 				$t = $xmin + $dx*$i + 1E-10;
@@ -201,8 +289,8 @@ function showplot($funcs) { //optional arguments:  $xmin,$xmax,$ymin,$ymax,label
 						$iy = $ymin - 5*($ymax-$ymin)/$settings[7];
 					}
 					$ix = ($x-$px)*($iy - $py)/($y-$py) + $px;
-					if ($lastl == 0) {$path .= "path([";} else { $path .= ",";}
-					$path .= "[$px,$py],[$ix,$iy]]);";
+					if ($lastl == 0) {$pathstr .= "path([";} else { $pathstr .= ",";}
+					$pathstr .= "[$px,$py],[$ix,$iy]]);";
 					$lastl = 0;
 				} else { //still out
 					
@@ -215,25 +303,25 @@ function showplot($funcs) { //optional arguments:  $xmin,$xmax,$ymin,$ymax,label
 						$iy = $ymin - 5*($ymax-$ymin)/$settings[7];
 					}
 					$ix = ($x-$px)*($iy - $py)/($y-$py) + $px;
-					if ($lastl == 0) {$path .= "path([";} else { $path .= ",";}
-					$path .= "[$ix,$iy]";
+					if ($lastl == 0) {$pathstr .= "path([";} else { $pathstr .= ",";}
+					$pathstr .= "[$ix,$iy]";
 					$lastl++;
 				} else { //still out
 					
 				}
 			} else {//all in
-				if ($lastl == 0) {$path .= "path([";} else { $path .= ",";}
-				$path .= "[$px,$py]";
+				if ($lastl == 0) {$pathstr .= "path([";} else { $pathstr .= ",";}
+				$pathstr .= "[$px,$py]";
 				$lastl++;
 			}
 			$px = $x;
 			$py = $y;
 			/*if (abs($y-$lasty) > ($ymax-$ymin)) {
-				if ($lastl > 1) { $path .= ']);'; $lastl = 0;}
+				if ($lastl > 1) { $pathstr .= ']);'; $lastl = 0;}
 				$lasty = $y;
 			} else {
-				if ($lastl == 0) {$path .= "path([";} else { $path .= ",";}
-				$path .= "[$x,$y]";
+				if ($lastl == 0) {$pathstr .= "path([";} else { $pathstr .= ",";}
+				$pathstr .= "[$x,$y]";
 				$lasty = $y;
 				$lastl++;
 				if ($y<$absymin) {
@@ -245,16 +333,50 @@ function showplot($funcs) { //optional arguments:  $xmin,$xmax,$ymin,$ymax,label
 			}
 			*/
 		}
-		if ($lastl > 0) {$path .= "]);";}
+		if ($lastl > 0) {$pathstr .= "]);";}
+		$path .= $pathstr;
 		$alt .= "</tbody></table>\n";
-		if ($function[5]=='open') {
+		
+		if ($isineq) {
+			
+			$pathstr = substr($pathstr,0,-3);
+			preg_match('/^path\(\[\[(-?[\d\.]+),(-?[\d\.]+).*(-?[\d\.]+),(-?[\d\.]+)\]$/',$pathstr,$matches);
+			$sig = ($xxmax-$xxmin)/100;
+			$ymid = ($yymax + $yymin)/2;
+			if ($ineqtype{0}=='<') {
+				if (abs($matches[3] - $xxmax)>$sig && $matches[4]>$ymid) {
+					$pathstr .= ",[$xxmax,$yymax]"; //need to add upper right corner	
+				}
+				$pathstr .= ",[$xxmax,$yymin],[$xxmin,$yymin]";
+				if (abs($matches[1] - $xxmin)>$sig  && $matches[2]>$ymid) {
+					$pathstr .= ",[$xxmin,$yymax]"; //need to add upper left corner	
+				}
+				$pathstr .= ']);';
+			} else {
+				if (abs($matches[3] - $xxmax)>$sig && $matches[4]<$ymid) {
+					$pathstr .= ",[$xxmax,$yymin]"; //need to add lower right corner	
+				}
+				$pathstr .= ",[$xxmax,$yymax],[$xxmin,$yymax]";
+				if (abs($matches[1] - $xxmin)>$sig  && $matches[2]<$ymid) {
+					$pathstr .= ",[$xxmin,$yymin]"; //need to add lower left corner	
+				}
+				$pathstr .= ']);';
+			}
+			if ($function[1]=='red' || $function[1]=='green') {
+				$path .= "fill=\"trans{$function[1]}\";";
+			} else {
+				$path .= "fill=\"transblue\";";
+			}
+			$path .= "stroke=\"none\";strokedasharray=\"none\";$pathstr";
+		}
+		if (isset($function[5]) && $function[5]=='open') {
 			$path .= "dot([$x,$y],\"open\");";
 			$alt .= "Open dot at $x,$y";
-		} else if ($function[5]=='closed') {
+		} else if (isset($function[5]) && $function[5]=='closed') {
 			$path .= "dot([$x,$y],\"closed\");";
 			$alt .= "Closed dot at $x,$y";
 		}
-		if ($function[4]=='open') {
+		if (isset($function[4]) && $function[4]=='open') {
 			if ($isparametric) {
 				$t = $xmin;
 				$x = round(eval("return ($xfunc);"),3);
@@ -270,7 +392,7 @@ function showplot($funcs) { //optional arguments:  $xmin,$xmax,$ymin,$ymax,label
 				$absymax = $y;
 			}
 			$alt .= "Open dot at $x,$y";
-		} else if ($function[4]=='closed') {
+		} else if (isset($function[4]) && $function[4]=='closed') {
 			if ($isparametric) {
 				$t = $xmin;
 				$x = round(eval("return ($xfunc);"),3);
@@ -394,6 +516,26 @@ function addfractionaxislabels($plot,$step) {
 	}
 	return str_replace("' />","$outst' />",$plot);
 	
+}
+
+function connectthedots($xarray,$yarray,$color='black',$thick=1,$startdot='',$enddot='') {
+	if (count($xarray)!=count($yarray)) {
+		echo "Error: x array and y array need to have the same number of elements";
+	}
+	$outarr = array();
+	for ($i=1; $i<count($xarray); $i++) {
+		if ($i==1) {$ed = $startdot;} else {$ed = '';}
+		if ($i==count($xarray)-1) {$sd = $enddot;} else {$sd = '';}
+		if ($xarray[$i-1]==$xarray[$i]) {
+			//vertical line
+			$outarr[] = "[{$xarray[$i]},t],$color,{$yarray[$i]},{$yarray[$i-1]},$sd,$ed,$thick";
+		} else {
+			$xd = $xarray[$i-1] - $xarray[$i];
+			$yd = $yarray[$i-1] - $yarray[$i];
+			$outarr[] = "[{$xarray[$i]}+t*($xd),{$yarray[$i]}+t*($yd)],$color,0,1,$sd,$ed,$thick";
+		}
+	}
+	return $outarr;
 }
 
 function showasciisvg($script) {
@@ -1353,22 +1495,40 @@ function numtowords($num,$doth=false) {
 	}
 	if ($dec>0) {
 		$cnt = 0;
-		while (($dec-round($dec))>1e-9 && $cnt<9) {
+		while (abs($dec-round($dec))>1e-9 && $cnt<9) {
 			$dec *= 10;
 			$cnt++;
 		}
-		$dec = round($dec);
 		$out .= convertTri($dec,0);
 		$out .= ' '.$placevals[$cnt];
 		if ($dec!=1) {
 			$out .= 's';
 		}
+		
 	}
 	return trim($out);	
 }
 
 $namearray[0] = explode(',',"Aaron,Ahmed,Aidan,Alan,Alex,Alfonso,Andres,Andrew,Antonio,Armando,Arturo,Austin,Ben,Bill,Blake,Bradley,Brayden,Brendan,Brian,Bryce,Caleb,Cameron,Carlos,Casey,Cesar,Chad,Chance,Chase,Chris,Cody,Collin,Colton,Conner,Corey,Dakota,Damien,Danny,Darius,David,Deandre,Demetrius,Derek,Devante,Devin,Devonte,Diego,Donald,Dustin,Dylan,Eduardo,Emanuel,Enrique,Erik,Ethan,Evan,Francisco,Frank,Gabriel,Garrett,Gerardo,Gregory,Ian,Isaac,Jacob,Jaime,Jake,Jamal,James,Jared,Jason,Jeff,Jeremy,Jesse,John,Jordan,Jose,Joseph,Josh,Juan,Julian,Julio,Justin,Juwan,Keegan,Ken,Kevin,Kyle,Landon,Levi,Logan,Lucas,Luis,Malik,Manuel,Marcus,Mark,Matt,Micah,Michael,Miguel,Nate,Nick,Noah,Omar,Paul,Quinn,Randall,Ricardo,Ricky,Roberto,Roy,Russell,Ryan,Salvador,Sam,Santos,Scott,Sergio,Shane,Shaun,Skyler,Spencer,Stephen,Taylor,Tevin,Todd,Tom,Tony,Travis,Trent,Trevor,Trey,Tristan,Tyler,Wade,Warren,Wyatt,Zach");
 $namearray[1] = explode(',',"Adriana,Adrianna,Alejandra,Alexandra,Alexis,Alice,Alicia,Alma,Amanda,Amber,Amy,Andrea,Angela,Anna,April,Ariana,Ashley,Ashton,Autumn,Bianca,Bria,Brianna,Brittany,Brooke,Caitlyn,Carissa,Carolyn,Carrie,Cassandra,Catherine,Chasity,Chelsea,Chloe,Christy,Ciara,Claudia,Colleen,Courtney,Cristina,Crystal,Dana,Danielle,Delaney,Destiny,Diana,Elizabeth,Emily,Emma,Erica,Erin,Esmeralda,Gabrielle,Guadalupe,Haley,Hanna,Heather,Hillary,Holly,Jacqueline,Jamie,Jane,Jasmine,Jenna,Jennifer,Jessica,Julia,Karen,Karina,Karissa,Karla,Kathryn,Katie,Kayla,Kelly,Kelsey,Kendra,Kimberly,Kori,Kristen,Kristina,Krystal,Kylie,Laura,Lauren,Leah,Linda,Lindsey,Mackenzie,Madison,Maggie,Mariah,Marissa,Megan,Melissa,Meredith,Michelle,Mikayla,Miranda,Molly,Monique,Morgan,Naomi,Natalie,Natasha,Nicole,Nina,Noelle,Paige,Patricia,Rachael,Raquel,Rebecca,Renee,Riley,Rosa,Samantha,Sarah,Savannah,Shannon,Shantel,Sierra,Sonya,Sophia,Stacy,Stephanie,Summer,Sydney,Tatiana,Taylor,Tiana,Tiffany,Valerie,Vanessa,Victoria,Vivian,Wendy,Whitney,Zoe");
+
+$cityarray = explode(',','Los Angeles,Dallas,Houston,Atlanta,Detroit,San Francisco,Minneapolis,St. Louis,Baltimore,Pittsburg,Cincinnati,Cleveland,San Antonio,Las Vegas,Milwaukee,Oklahoma City,New Orleans,Tucson,New York City,Chicago,Philadelphia,Miami,Boston,Phoenix,Seattle,San Diego,Tampa,Denver,Portland,Sacramento,Orlando,Kansas City,Nashville,Memphis,Hartford,Salt Lake City');
+
+function randcities($n=1) {
+	global $cityarray;
+	$c = count($cityarray);
+	if ($n==1) {
+		return $cityarray[rand(0,$c-1)];
+	} else {
+		$out = $cityarray;
+		shuffle($out);
+		return array_slice($out,0,$n);
+	}
+}
+
+function randcity() {
+	return randcities(1);
+}
 
 function randnames($n=1,$gender=2) { 
 	global $namearray;
@@ -1663,7 +1823,8 @@ function decimaltofraction($d,$format="fraction",$maxden = 5000) {
 	
 		//appendFractionsOutput(numerators[i], denominators[i]);
 	
-		if ($calcD == $d) { break;}
+		//if ($calcD == $d) { break;}
+		if (abs($calcD - $d)<1e-9) { break;}
 	
 		$prevCalcD = $calcD;
 	
@@ -1714,6 +1875,32 @@ function formpopup($label,$content,$width=600,$height=400,$type='link') {
 			return '<span class="spanbutton" onClick="popupwindow(\''.str_replace('\'','\\\'',htmlentities($content)).'\','.$width.','.$height.')">'.$label.'</span>';
 		}
 	}
+}
+
+function intervaltoineq($str,$var) {
+	if ($str=='DNE') {
+		return 'DNE';
+	}
+	$arr = explode('U',$str);
+	$out = array();
+	foreach ($arr as $v) {
+		$v = trim($v);
+		$sm = $v{0};
+		$em = $v{strlen($v)-1};
+		$pts = explode(',',substr($v,1,strlen($v)-2));
+		if ($pts[0]=='-oo') {
+			if ($pts[1]=='oo') {
+				$out[] = '"all real numbers"';
+			} else {
+				$out[] = $var . ($em==']'?'le':'lt') . $pts[1];
+			}
+		} else if ($pts[1]=='oo') {
+			$out[] = $var . ($sm=='['?'ge':'gt') . $pts[0];
+		} else {
+			$out[] = $pts[0] . ($sm=='['?'le':'lt') . $var . ($em==']'?'le':'lt') . $pts[1];
+		}
+	}
+	return implode(' \\ "or" \\ ',$out);
 }
 
 ?>

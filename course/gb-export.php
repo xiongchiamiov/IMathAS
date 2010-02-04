@@ -8,6 +8,7 @@
 		echo "This page not available to students";
 		exit;
 	}
+	$canviewall = true;
 	if (isset($sessiondata[$cid.'gbmode'])) {
 		$gbmode =  $sessiondata[$cid.'gbmode'];
 	} else {
@@ -25,6 +26,7 @@
 		require("../header.php");
 		echo "<div class=breadcrumb>$breadcrumbbase <a href=\"course.php?cid=$cid\">$coursename</a> ";
 		echo "&gt; <a href=\"gradebook.php?stu=0&cid=$cid\">Gradebook</a> &gt; Export Gradebook</div>";
+		echo '<div id="headergb-export" class="pagetitle"><h2>Export Gradebook</h2></div>';
 		
 		echo "<form method=post action=\"gb-export.php?cid=$cid&stu=$stu&gbmode=$gbmode";
 		if (isset($_GET['export'])) {
@@ -47,7 +49,7 @@
 			echo 'or whatever program your computer has set to open .csv spreadsheet files</p>';
 			echo '<p>A CSV (comma separated values) file will just contain data, and can be opened in most spreadsheet programs</p>';
 			echo '<p>Using the Download for Excel button will generate an HTML file that Excel can open, and will most likely preserve coloring and other formatting</p>';
-			echo '<p><a href=\"gradebook.php?cid=$cid\">Return to gradebook</a></p>';
+			echo '<p><a href="gradebook.php?cid='.$cid.'">Return to gradebook</a></p>';
 		} else {
 			echo '<div class="submit"><input type=submit value="Email Gradebook" /></div>';
 		}
