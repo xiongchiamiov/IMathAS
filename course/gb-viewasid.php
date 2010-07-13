@@ -96,7 +96,7 @@
 			//deleteasidfilesbyquery(array($qp[0]=>$qp[1]),1);
 			
 			$query = "DELETE FROM imas_assessment_sessions";// WHERE id='{$_GET['asid']}'";
-			$query .= " WHERE {$qp[0]}='{$qp[1]}'";
+			$query .= " WHERE {$qp[0]}='{$qp[1]}' AND assessmentid='{$qp[2]}'";
 			//$query .= getasidquery($_GET['asid']);
 			mysql_query($query) or die("Query failed : " . mysql_error());
 			
@@ -148,7 +148,7 @@
 			$qp = getasidquery($_GET['asid']);
 			//deleteasidfilesbyquery(array($qp[0]=>$qp[1]),1);
 			deleteasidfilesbyquery2($qp[0],$qp[1],$qp[2],1);
-			$whereqry = " WHERE {$qp[0]}='{$qp[1]}'";
+			$whereqry = " WHERE {$qp[0]}='{$qp[1]}' AND assessmentid='{$qp[2]}'";
 			$query = "SELECT seeds,lastanswers,bestlastanswers FROM imas_assessment_sessions $whereqry";
 			$result = mysql_query($query) or die("Query failed : " . mysql_error());
 			$seeds = explode(',',mysql_result($result,0,0));
@@ -188,7 +188,7 @@
 	if (isset($_GET['clearq']) && isset($_GET['asid']) && $isteacher) {
 		if ($_GET['confirmed']=="true") {
 			$qp = getasidquery($_GET['asid']);
-			$whereqry = " WHERE {$qp[0]}='{$qp[1]}'";
+			$whereqry = " WHERE {$qp[0]}='{$qp[1]}' AND assessmentid='{$qp[2]}'";
 			//$whereqry = getasidquery($_GET['asid']);
 			
 			$query = "SELECT attempts,lastanswers,reattempting,scores,bestscores,bestattempts,bestlastanswers FROM imas_assessment_sessions $whereqry"; //WHERE id='{$_GET['asid']}'";
@@ -287,7 +287,7 @@
 				$query = "UPDATE imas_assessment_sessions SET bestscores='$scorelist',feedback='$feedback'";
 				if (isset($_POST['updategroup'])) {
 					$qp = getasidquery($_GET['asid']);
-					$query .=  " WHERE {$qp[0]}='{$qp[1]}'";
+					$query .=  " WHERE {$qp[0]}='{$qp[1]}' AND assessmentid='{$qp[2]}'";
 					//$query .= getasidquery($_GET['asid']);
 				} else {
 					$query .= "WHERE id='{$_GET['asid']}'";
@@ -326,7 +326,7 @@
 			$query = "UPDATE imas_assessment_sessions SET starttime='{$_GET['starttime']}' ";//WHERE id='{$_GET['asid']}'";
 			//$query .= getasidquery($_GET['asid']);
 			$qp = getasidquery($_GET['asid']);
-			$query .=  " WHERE {$qp[0]}='{$qp[1]}'";
+			$query .=  " WHERE {$qp[0]}='{$qp[1]}' AND assessmentid='{$qp[2]}'";
 			mysql_query($query) or die("Query failed : $query " . mysql_error());
 		}
 		
@@ -386,10 +386,13 @@
 			exit;
 		}
 		echo "<h4>{$line['name']}</h4>\n";
+		
+		$aid = $line['assessmentid'];
+		
 		if (($isteacher || $istutor) && !isset($_GET['lastver']) && !isset($_GET['reviewver'])) {
 			if ($line['agroupid']>0) {
 				$q2 = "SELECT i_u.LastName,i_u.FirstName FROM imas_assessment_sessions AS i_a_s,imas_users AS i_u WHERE ";
-				$q2 .= "i_u.id=i_a_s.userid AND i_a_s.agroupid='{$line['agroupid']}'";
+				$q2 .= "i_u.id=i_a_s.userid AND i_a_s.assessmentid='$aid' AND i_a_s.agroupid='{$line['agroupid']}' ORDER BY LastName,FirstName";
 				$result = mysql_query($q2) or die("Query failed : " . mysql_error());
 				echo "<p>Group members: <ul>";
 				while ($row = mysql_fetch_row($result)) {
@@ -398,7 +401,7 @@
 				echo "</ul></p>";
 			}	
 		}
-		$aid = $line['assessmentid'];
+		
 		
 		echo "<p>Started: " . tzdate("F j, Y, g:i a",$line['starttime']) ."<BR>\n";
 		if ($line['endtime']==0) { 
@@ -614,8 +617,11 @@
 				echo "(parts: {$answeights[$questions[$i]]}) ";
 			}
 			echo "in {$attempts[$i]} attempt(s)\n";
+			$laarr = explode('##',$lastanswers[$i]);
+			if ($attempts[$i]!=count($laarr)) {
+				//echo " (clicked \"Jump to answer\")";
+			}
 			if ($isteacher || $istutor) {
-				$laarr = explode('##',$lastanswers[$i]);
 				if (count($laarr)>1) {
 					echo "<br/>Previous Attempts:";
 					$cnt =1;

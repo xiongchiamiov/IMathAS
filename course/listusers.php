@@ -84,6 +84,7 @@ if (!isset($teacherid)) { // loaded by a NON-teacher
 			if (mysql_num_rows($result)==0) {
 				$overwriteBody = 1;
 				$body = "Error, username doesn't exist. <a href=\"listusers.php?cid=$cid&enroll=student\">Try again</a>\n";
+				$body .= "or <a href=\"listusers.php?cid=$cid&newstu=new\">create and enroll a new student</a>";
 			} else {
 				$id = mysql_result($result,0,0);
 				if ($id==$userid) {
@@ -190,7 +191,7 @@ if (!isset($teacherid)) { // loaded by a NON-teacher
 		
 			require('../includes/userpics.php');
 			if (is_uploaded_file($_FILES['stupic']['tmp_name'])) {
-				processImage($_FILES['stupic'],$_GET['uid'],100,100);
+				processImage($_FILES['stupic'],$_GET['uid'],200,200);
 				processImage($_FILES['stupic'],'sm'.$_GET['uid'],40,40);
 			} else if (isset($_POST['removepic'])) {
 				$curdir = rtrim(dirname(__FILE__), '/\\');
@@ -524,10 +525,16 @@ if ($overwriteBody==1) {
 	}
 ?>
 				</td>
-				<?php echo $hasSectionData; ?>
-				<?php echo $hasCodeData; ?>
-				<td><?php echo $line['LastName'] ?></td>
-				<td><?php echo $line['FirstName'] ?></td>
+				<?php 
+				echo $hasSectionData; 
+				echo $hasCodeData;
+				if ($line['locked']==1) {
+					echo '<td><span style="text-decoration: line-through;">'.$line['LastName'].'</span></td>';
+					echo '<td><span style="text-decoration: line-through;">'.$line['FirstName'].'</span></td>';
+				} else {
+					echo '<td>'.$line['LastName'].'</td><td>'.$line['FirstName'].'</td>';
+				}
+				?>
 				<td><a href="mailto:<?php echo $line['email'] ?>"><?php echo $line['email'] ?></a></td>
 				<td><?php echo $line['SID'] ?></td>
 				<td><?php echo $lastaccess ?></td>

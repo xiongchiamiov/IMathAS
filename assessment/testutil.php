@@ -169,19 +169,25 @@ function totalpointspossible($qi) {
 //testsettings: assoc array of assessment settings
 function getremainingpossible($qn,$qi,$testsettings,$attempts) {
 	global $scores;
+	global $regenonreattempt;
 	if (isset($qi['answeights']) && $scores[$qn]!=-1) {
 		$possible = calcpointsafterpenalty(implode('~',$qi['answeights']),$qi,$testsettings,$attempts);
 		$appts = explode('~',$possible);
 		$curs = explode('~',$scores[$qn]);
-		for ($k=0;$k<count($curs);$k++) {
-			if ($appts[$k]>$curs[$k]) { //part after penalty better than orig, replace
-				$curs[$k] = $appts[$k];
+		if (count($curs)==count($appts) && !$regenonreattempt) {
+			for ($k=0;$k<count($curs);$k++) {
+				if ($appts[$k]>$curs[$k]) { //part after penalty better than orig, replace
+					$curs[$k] = $appts[$k];
+				}
+				if ($curs[$k]<0) {
+					$curs[$k] = 0;
+				}
 			}
-			if ($curs[$k]<0) {
-				$curs[$k] = 0;
-			}
+			$possible = round(array_sum($curs),1);
+		} else {
+			$possible = round(array_sum($appts),1);
 		}
-		$possible = round(array_sum($curs),1);
+		
 	} else {
 		$possible = calcpointsafterpenalty(1,$qi,$testsettings,$attempts);
 	}
@@ -413,7 +419,7 @@ function recordtestdata($limit=false) {
 		}
 	}
 	if ($testsettings['isgroup']>0 && $sessiondata['groupid']>0 && !$isreview) {
-		$query .= "WHERE agroupid='{$sessiondata['groupid']}'";
+		$query .= "WHERE agroupid='{$sessiondata['groupid']}' AND assessmentid='{$testsettings['id']}'";
 	} else {
 		$query .= "WHERE id='$testid' LIMIT 1";
 	}

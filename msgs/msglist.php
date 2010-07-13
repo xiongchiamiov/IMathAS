@@ -130,37 +130,6 @@ isread:
 				$msgmonitor = floor($msgset/5);
 				$msgset = $msgset%5;
 			}
-				
-			echo "<form method=post action=\"msglist.php?page=$page&cid=$cid&add={$_GET['add']}&replyto=$replyto\">\n";
-			echo "<span class=form>To:</span><span class=formright>\n";
-			if (isset($_GET['to'])) {
-				$query = "SELECT LastName,FirstName FROM imas_users WHERE id='{$_GET['to']}'";
-				$result = mysql_query($query) or die("Query failed : $query " . mysql_error());
-				$row = mysql_fetch_row($result);
-				echo $row[0].', '.$row[1];
-				echo "<input type=hidden name=to value=\"{$_GET['to']}\"/>";
-			} else {
-				echo "<select name=\"to\">";
-				if ($isteacher || $msgset<2) {
-					$query = "SELECT imas_users.id,imas_users.FirstName,imas_users.LastName FROM ";
-					$query .= "imas_users,imas_teachers WHERE imas_users.id=imas_teachers.userid AND ";
-					$query .= "imas_teachers.courseid='$cid' ORDER BY imas_users.LastName";
-					$result = mysql_query($query) or die("Query failed : $query " . mysql_error());
-					while ($row = mysql_fetch_row($result)) {
-						echo "<option value=\"{$row[0]}\">{$row[2]}, {$row[1]}</option>";
-					}
-				}
-				if ($isteacher || $msgset==0 || $msgset==2) {
-					$query = "SELECT imas_users.id,imas_users.FirstName,imas_users.LastName FROM ";
-					$query .= "imas_users,imas_students WHERE imas_users.id=imas_students.userid AND ";
-					$query .= "imas_students.courseid='$cid' ORDER BY imas_users.LastName";
-					$result = mysql_query($query) or die("Query failed : $query " . mysql_error());
-					while ($row = mysql_fetch_row($result)) {
-						echo "<option value=\"{$row[0]}\">{$row[2]}, {$row[1]}</option>";
-					}
-				}
-				echo "</select>";
-			}
 			if (isset($_GET['toquote']) || isset($_GET['replyto'])) {
 				$query = "SELECT title,message,courseid FROM imas_msgs WHERE id='$replyto'";
 				$result = mysql_query($query) or die("Query failed : $query " . mysql_error());
@@ -186,6 +155,58 @@ isread:
 				$message = '';
 				$courseid=$cid;
 			}
+			
+			echo "<form method=post action=\"msglist.php?page=$page&cid=$cid&add={$_GET['add']}&replyto=$replyto\">\n";
+			echo "<span class=form>To:</span><span class=formright>\n";
+			if (isset($_GET['to'])) {
+				$query = "SELECT LastName,FirstName,email FROM imas_users WHERE id='{$_GET['to']}'";
+				$result = mysql_query($query) or die("Query failed : $query " . mysql_error());
+				$row = mysql_fetch_row($result);
+				echo $row[0].', '.$row[1];
+				$ismsgsrcteacher = false;
+				if ($courseid==$cid && $isteacher) {
+					$ismsgsrcteacher = true;
+				} else if ($courseid!=$cid) {
+					$query = "SELECT id FROM imas_teachers WHERE userid='$userid' AND courseid='$courseid'";
+					$result = mysql_query($query) or die("Query failed : $query " . mysql_error());
+					if (mysql_num_rows($result)!=0) {
+						$ismsgsrcteacher = true;
+					}
+				}
+				if ($ismsgsrcteacher) {
+					echo " <a href=\"mailto:{$row[2]}\">email</a> | ";
+					echo " <a href=\"$imasroot/course/gradebook.php?cid=$courseid&stu={$_GET['to']}\" target=\"_popoutgradebook\">gradebook</a>";
+				}
+				echo "<input type=hidden name=to value=\"{$_GET['to']}\"/>";
+				$curdir = rtrim(dirname(__FILE__), '/\\');
+				if (isset($_GET['to']) && file_exists("$curdir/../course/files/userimg_sm{$_GET['to']}.jpg")) {
+					echo " <img style=\"vertical-align: middle;\" src=\"$imasroot/course/files/userimg_sm{$_GET['to']}.jpg\" onclick=\"togglepic(this)\" /><br/>";
+				}
+			} else {
+				echo "<select name=\"to\">";
+				if ($isteacher || $msgset<2) {
+					$query = "SELECT imas_users.id,imas_users.FirstName,imas_users.LastName FROM ";
+					$query .= "imas_users,imas_teachers WHERE imas_users.id=imas_teachers.userid AND ";
+					$query .= "imas_teachers.courseid='$cid' ORDER BY imas_users.LastName";
+					$result = mysql_query($query) or die("Query failed : $query " . mysql_error());
+					while ($row = mysql_fetch_row($result)) {
+						echo "<option value=\"{$row[0]}\">{$row[2]}, {$row[1]}</option>";
+					}
+				}
+				if ($isteacher || $msgset==0 || $msgset==2) {
+					$query = "SELECT imas_users.id,imas_users.FirstName,imas_users.LastName FROM ";
+					$query .= "imas_users,imas_students WHERE imas_users.id=imas_students.userid AND ";
+					$query .= "imas_students.courseid='$cid' ORDER BY imas_users.LastName";
+					$result = mysql_query($query) or die("Query failed : $query " . mysql_error());
+					while ($row = mysql_fetch_row($result)) {
+						echo "<option value=\"{$row[0]}\">{$row[2]}, {$row[1]}</option>";
+					}
+				}
+				echo "</select>";
+			}
+			
+			
+				
 			echo "</span><br class=form />";
 			echo "<input type=hidden name=courseid value=\"$courseid\"/>\n";
 			echo "<span class=form><label for=\"subject\">Subject:</label></span>";
