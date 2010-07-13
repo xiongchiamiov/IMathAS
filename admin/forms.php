@@ -138,6 +138,7 @@ switch($_GET['action']) {
 			
 			$copyrights = isset($CFG['CPS']['copyrights'])?$CFG['CPS']['copyrights'][0]:0;
 			$msgset = isset($CFG['CPS']['msgset'])?$CFG['CPS']['msgset'][0]:0;
+			$msgmonitor = isset($CFG['CPS']['msgmonitor'])?$CFG['CPS']['msgmonitor']:0;
 			$cploc = isset($CFG['CPS']['cploc'])?$CFG['CPS']['cploc'][0]:1;
 			
 			$topbar = isset($CFG['CPS']['topbar'])?$CFG['CPS']['topbar'][0]:array(array(),array(),0);
