@@ -178,6 +178,10 @@ function displayq($qnidx,$qidx,$seed,$doshowans,$showhints,$attemptn,$returnqtxt
 	}
 	if (is_array($answerbox)) {
 		foreach($answerbox as $iidx=>$abox) {
+			if ($seqinactive) {
+				$answerbox[$iidx] = str_replace('<input','<input disabled="disabled"',$abox);
+				$answerbox[$iidx] = str_replace('<select','<select disabled="disabled"',$answerbox[$iidx]);
+			}
 			if (strpos($toevalqtxt,"\$previewloc[$iidx]")===false) {
 				$answerbox[$iidx] .= $previewloc[$iidx];
 			}
@@ -186,6 +190,10 @@ function displayq($qnidx,$qidx,$seed,$doshowans,$showhints,$attemptn,$returnqtxt
 			}
 		}
 	} else {
+		if ($seqinactive) {
+			$answerbox = str_replace('<input','<input disabled="disabled"',$answerbox);
+			$answerbox = str_replace('<select','<select disabled="disabled"',$answerbox);
+		}
 		if (strpos($toevalqtxt,'$previewloc')===false) {
 			$answerbox .= $previewloc;
 		}
@@ -211,7 +219,8 @@ function displayq($qnidx,$qidx,$seed,$doshowans,$showhints,$attemptn,$returnqtxt
 		if (is_array($answerbox)) {
 			foreach($answerbox as $iidx=>$abox) {
 				if ($seqinactive) {
-					//$abox = str_replace('<input','<input disabled="disabled"',$abox);
+					$answerbox[$iidx] = str_replace('<input','<input disabled="disabled"',$abox);
+					$answerbox[$iidx] = str_replace('<select','<select disabled="disabled"',$answerbox[$iidx]);
 				}
 				if ($returnqtxt) {
 					//$returntxt .= "<p>$abox</p>";
@@ -222,7 +231,8 @@ function displayq($qnidx,$qidx,$seed,$doshowans,$showhints,$attemptn,$returnqtxt
 			}
 		} else {  //one question only
 			if ($seqinactive) {
-				//$answerbox = str_replace('<input','<input disabled="disabled"',$answerbox);
+				$answerbox = str_replace('<input','<input disabled="disabled"',$answerbox);
+				$answerbox = str_replace('<select','<select disabled="disabled"',$answerbox);
 			}
 			if ($returnqtxt) {
 				//$returntxt .= "<p>$answerbox</p>";
@@ -466,11 +476,11 @@ function makeanswerbox($anstype, $qn, $la, $options,$multi) {
 			$rightb = '';
 		}
 		if ($answerformat=='list' || $answerformat=='exactlist' ||  $answerformat=='orderedlist') {
-			$tip = "Enter your answer as a list of numbers separated with commas: Example: -4, 3, 2.5<br/>";
-			$shorttip = "Enter a list of numbers";
+			$tip = "Enter your answer as a list of whole or decimal numbers separated with commas: Examples: -4, 3, 2.5<br/>";
+			$shorttip = "Enter a list of whole or decimal numbers";
 		} else {
-			$tip = "Enter your answer as a number.  Examples: 3, -4, 5.5<br/>";
-			$shorttip = "Enter a number";
+			$tip = "Enter your answer as a whole or decimal number.  Examples: 3, -4, 5.5<br/>";
+			$shorttip = "Enter a whole or decimal number";
 		}
 		$tip .= "Enter DNE for Does Not Exist, oo for Infinity";
 		if (isset($reqdecimals)) {

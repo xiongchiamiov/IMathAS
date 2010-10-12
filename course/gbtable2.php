@@ -381,7 +381,7 @@ function gbtable() {
 		}
 		$category = $newcategory;
 	} else if ($orderby==3) { //order $category alpha
-		asort($name);
+		natcasesort($name);//asort($name);
 		$newcategory = array();
 		foreach ($name as $k=>$v) {
 			$newcategory[$k] = $category[$k];
@@ -459,7 +459,7 @@ function gbtable() {
 			asort($enddate,SORT_NUMERIC);
 			$itemorder = array_keys($enddate);
 		} else if ($orderby==2) {
-			asort($name);
+			natcasesort($name);//asort($name);
 			$itemorder = array_keys($name);
 		}
 		
@@ -710,7 +710,8 @@ function gbtable() {
 		if ($assessmenttype[$i]=="NoScores" && $sa[$i]!="I" && $now<$thised && !$canviewall) {
 			$gb[$row][1][$col][0] = 'N/A'; //score is not available
 			$gb[$row][1][$col][3] = 0;  //no other info
-		} else if ($pts<$minscores[$i]) {
+		} else if (($minscores[$i]<10000 && $pts<$minscores[$i]) || ($minscores[$i]>10000 && $pts<($minscores[$i]-10000)/100*$possible[$i])) {
+		//else if ($pts<$minscores[$i]) {
 			if ($canviewall) {
 				$gb[$row][1][$col][0] = $pts; //the score
 				$gb[$row][1][$col][3] = 1;  //no credit
